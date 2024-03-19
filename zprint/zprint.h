@@ -7,7 +7,7 @@
 #include <string>
 #include <iostream>
 #include <sys/time.h>
-#include "mutex/mutex.h"
+#include "mutex/mutex_class.h"
 
 using namespace std;
 
@@ -37,70 +37,62 @@ class PRINTF_CLASS:public MUTEX_CLASS
 {
 private:
     FILE * pfd;
+    int    mark;
+    PRINTF_CLASS();
+
 
 public:
-    PRINTF_CLASS(const char * name = NULL, int fd = 1)
-    {
-        timeprf("PRINTF_CLASS creat!\n");
-        if(fd == 1)          //标准输出
-        {
-            pfd = stdout;
-        }
-        else
-        {
-            pfd = NULL;
-            if(name != NULL)
-            {
-                pfd = fopen(name, "a+");
-                if(pfd == NULL)
-                {
-                    printf("file %s open fail\n", name);
-                }
-            }
-        }
-    }
+
     ~PRINTF_CLASS()
     {
         timemsprintf("destory PRINTF_CLASS!\n");
         if(pfd != stdout && pfd != NULL)
         {
+
             fclose(pfd);
             printf("close fd!\n");
         }
     }
+    void printf_class_init(string dir);
+    static PRINTF_CLASS * getInstance(void);
     void printf_init(const char * name, int fd);
     void zprintf(const char * format, ...);
     void timeprintf(const char * format, ...);
     void timemsprintf(const char * format, ...);
 
-
-};
-
-class PRINTF_INSTANCE:public PRINTF_CLASS
-{
 private:
+    static PRINTF_CLASS * m_pSelf;
 
-     PRINTF_INSTANCE(char * name = NULL, int fd = 1):PRINTF_CLASS(name,fd)
-     {
-         ;
-     }
-
-public:
-    static PRINTF_INSTANCE * get_printf_instance(void)
-    {
-        static PRINTF_INSTANCE gPrintf;
-        return &gPrintf;
-    }
-    ~PRINTF_INSTANCE()
-    {
-        ;
-    }
 
 };
+
+//class PRINTF_INSTANCE:public PRINTF_CLASS
+//{
+//private:
+
+//     PRINTF_INSTANCE(char * name = NULL, int fd = 1):PRINTF_CLASS(name,fd)
+//     {
+//         ;
+//     }
+
+//public:
+//    static PRINTF_INSTANCE * get_printf_instance(void)
+//    {
+//        static PRINTF_INSTANCE gPrintf;
+//        return &gPrintf;
+//    }
+//    ~PRINTF_INSTANCE()
+//    {
+//        ;
+//    }
+
+//};
 
 extern PRINTF_CLASS * debug_p;
 
-#define PRINT_PRO      4
+
+
+#define PRINT_PRO      3
 
 #if PRINT_PRO >=1
 #define zprintf1 debug_p->timemsprintf

@@ -30,7 +30,7 @@ HEADERS += \
     date/com_date.h \
     epoll/e_poll.h \
     h264depay/h264depay.h \
-    mutex/mutex.h \
+    mutex/mutex_class.h \
     rtcp/rtcp.h \
     rtp/rtp.h \
     rtsp/rtsp.h \

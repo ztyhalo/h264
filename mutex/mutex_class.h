@@ -1,7 +1,8 @@
-#ifndef __MUTEX_H__
-#define __MUTEX_H__
+#ifndef __MUTEX_CLASS_H__
+#define __MUTEX_CLASS_H__
 #include <stdio.h>
 #include <pthread.h>
+#include <iostream>
 
 using namespace std;
 
@@ -28,4 +29,4 @@ public:
 
 };
 
-#endif //__MUTEX_H__
+#endif //__MUTEX_CLASS_H__

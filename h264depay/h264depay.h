@@ -2,7 +2,7 @@
 #define H264DEPAY_H
 
 #include <string.h>
-#include "mutex/mutex.h"
+#include "mutex/mutex_class.h"
 
 #include "rtp/rtpinfo.h"
 #include "vpudec/vpudec.h"
