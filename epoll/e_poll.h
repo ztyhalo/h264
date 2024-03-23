@@ -129,6 +129,7 @@ private:
     pthread_t pid;
 private:
      static void * start_thread(void * arg){
+            zprintf1("zty pid start!\n");
             int res = pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,   NULL);   //设置立即取消
             if (res != 0)
             {
@@ -139,17 +140,20 @@ private:
          return NULL;
      }
 public:
+     int running;
      Pth_Class(){
          pid = 0;
+         running = 0;
      }
      ~Pth_Class(){
          zprintf4("destory Pth_Class!\n");
          if(pid > 0){
+            running = 0;
             pthread_cancel(pid);
             pthread_join(pid, NULL);
             pid = 0;
          }
-         zprintf4("destory Pth_Class delete over!\n");
+         zprintf1("destory Pth_Class delete over!\n");
      }
 //     void pth_class_exit(void){
 //          if(pid > 0){
@@ -170,6 +174,8 @@ public:
              }
              else
              {
+                 running = 1;
+                 zprintf1("zty create pid!\n");
                  return 0;
              }
          }

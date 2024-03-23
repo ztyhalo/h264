@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <stdlib.h>
+#include "zprint/zprint.h"
 
 static IMXV4l2DeviceMap g_device_maps[] = {
   {"/dev/video0", false, "/dev/fb0"},
@@ -20,7 +21,7 @@ void print_crop_info(struct v4l2_crop *crop)
     printf("zty printf crop type %d!\n", crop->type);
     printf("zty crop info (%d, %d) -> (%d, %d).\n", crop->c.left, crop->c.top, crop->c.width, crop->c.height);
 }
-static uint32_t string_to_fmt (char *value)
+static uint32_t string_to_fmt (const char *value)
 {
   uint32_t fmt, a, b, c, d;
 
@@ -59,14 +60,14 @@ DisplayDev::~DisplayDev()
 void DisplayDev::get_display_resolution (char * device)
 {
     struct fb_var_screeninfo fb_var;
-     int i;
+     uint i;
 //     int device_map_id;
      int fd;
 
      width = DEFAULTW;
      height = DEFAULTH;
 
-     for (i=0; i<sizeof(g_device_maps)/sizeof(IMXV4l2DeviceMap); i++)
+     for (i=0; i< sizeof(g_device_maps)/sizeof(IMXV4l2DeviceMap); i++)
      {
        if (!strcmp (device, g_device_maps[i].name)) {
          device_map_id = i;
@@ -76,7 +77,7 @@ void DisplayDev::get_display_resolution (char * device)
 
      fd = open (g_device_maps[device_map_id].bg_fb_name, O_RDWR, 0);
      if (fd < 0) {
-       printf ("ERROR: Can't open %s.\n", g_device_maps[device_map_id].bg_fb_name);
+       zprintf1 ("ERROR: Can't open %s.\n", g_device_maps[device_map_id].bg_fb_name);
        return;
      }
 
@@ -168,7 +169,7 @@ int G2dDevice::g2d_device_update_surface_info (SurfaceInfo *info, void * surface
       else {
         printf ("source format (%x) is not supported.!\n", info->fmt);
         return -1;
-      }
+    }
 
     hsurface->src.width = info->src.width;
     hsurface->src.height = info->src.height;
@@ -179,39 +180,40 @@ int G2dDevice::g2d_device_update_surface_info (SurfaceInfo *info, void * surface
     hsurface->src.bottom = info->src.bottom;
 
     printf ("zty source, format (%x), res (%d,%d), crop (%d,%d) --> (%d,%d)!\n",
-     hsurface->src.format, hsurface->src.width, hsurface->src.height,
-     hsurface->src.left, hsurface->src.top, hsurface->src.right, hsurface->src.bottom);
+    hsurface->src.format, hsurface->src.width, hsurface->src.height,
+    hsurface->src.left, hsurface->src.top, hsurface->src.right, hsurface->src.bottom);
 
     hsurface->dst.format = (g2d_format) hdevice->fmt;
-      hsurface->dst.width = hdevice->width;
-      hsurface->dst.height = hdevice->height;
-      hsurface->dst.stride = hdevice->width;
-      hsurface->dst.left = info->dst.left;
-      hsurface->dst.top = info->dst.top;
-      hsurface->dst.right = info->dst.right;
-      hsurface->dst.bottom = info->dst.bottom;
-      switch (info->rot) {
-        case 0:
-          hsurface->dst.rot = G2D_ROTATION_0;
-          break;
-        case 90:
-          hsurface->dst.rot = G2D_ROTATION_90;
-          break;
-        case 180:
-          hsurface->dst.rot = G2D_ROTATION_180;
-          break;
-        case 270:
-          hsurface->dst.rot = G2D_ROTATION_270;
-          break;
-        default:
-          hsurface->dst.rot = G2D_ROTATION_0;
-          break;
+    hsurface->dst.width = hdevice->width;
+    hsurface->dst.height = hdevice->height;
+    hsurface->dst.stride = hdevice->width;
+    hsurface->dst.left = info->dst.left;
+    hsurface->dst.top = info->dst.top;
+    hsurface->dst.right = info->dst.right;
+    hsurface->dst.bottom = info->dst.bottom;
+
+    switch (info->rot) {
+    case 0:
+      hsurface->dst.rot = G2D_ROTATION_0;
+      break;
+    case 90:
+      hsurface->dst.rot = G2D_ROTATION_90;
+      break;
+    case 180:
+      hsurface->dst.rot = G2D_ROTATION_180;
+      break;
+    case 270:
+      hsurface->dst.rot = G2D_ROTATION_270;
+      break;
+    default:
+      hsurface->dst.rot = G2D_ROTATION_0;
+      break;
     }
 
-      printf ("zty dest, format (%x), res (%d,%d), crop (%d,%d) --> (%d,%d)!\n",
-       hsurface->dst.format, hsurface->dst.width, hsurface->dst.height,
-       hsurface->dst.left, hsurface->dst.top, hsurface->dst.right, hsurface->dst.bottom);
-      return 0;
+    printf ("zty dest, format (%x), res (%d,%d), crop (%d,%d) --> (%d,%d)!\n",
+    hsurface->dst.format, hsurface->dst.width, hsurface->dst.height,
+    hsurface->dst.left, hsurface->dst.top, hsurface->dst.right, hsurface->dst.bottom);
+    return 0;
 
 }
 
@@ -617,7 +619,7 @@ int V4L2::imx_v4l2_allocate_buffer (PhyMemBlock *mem)
 
     if(allocated >= buffer_count)
     {
-        printf("No more v4l2 buffer for allocating. allocated %d buffer_count %d\n", allocated, buffer_count);
+        zprintf1("No more v4l2 buffer for allocating. allocated %d buffer_count %d\n", allocated, buffer_count);
         return -1;
     }
     v4l2buf = &v4l2buffer[allocated];
@@ -639,13 +641,13 @@ int V4L2::imx_v4l2_allocate_buffer (PhyMemBlock *mem)
 
     if (!mem->vaddr)
     {
-      printf ("mmap v4lbuffer address failed\n");
+      zprintf1 ("mmap v4lbuffer address failed\n");
       return -3;
     }
 
     if (ioctl(v4l2_fd, VIDIOC_QUERYBUF, v4l2buf) < 0)
     {
-      printf ("VIDIOC_QUERYBUF for physical address failed.\n");
+      zprintf1 ("VIDIOC_QUERYBUF for physical address failed.\n");
       return -4;
     }
     mem->paddr = (uint8_t *) v4l2buf->m.offset;
@@ -731,13 +733,13 @@ int V4L2::get_next_display_buffer (SurfaceBuffer *buffer)
   {
     if (imx_v4l2_dequeue_v4l2memblk (&mem) < 0)
     {
-      printf ("get buffer from %s failed.!\n");
+      zprintf1("get buffer from failed.!\n");
       return -1;
     }
   }
 
   if (!mem) {
-    printf ("get display buffer failed.!\n");
+    zprintf1("get display buffer failed.!\n");
     return -2;
   }
 
@@ -759,7 +761,7 @@ v4l2_buffer * V4L2::imx_v4l2_find_buffer(PhyMemBlock *mem)
       return &v4l2buffer[i];
   }
 
-  printf ("Can't find the buffer 0x%08X.!\n", mem->paddr);
+  zprintf1 ("Can't find the buffer %p!\n", mem->paddr);
   return NULL;
 }
 
@@ -768,7 +770,7 @@ int V4L2::imx_v4l2_do_queue_buffer(struct v4l2_buffer *v4l2buf)
     struct timeval queuetime;
     if (!v4l2buf)
     {
-        printf ("queue buffer is NULL!!\n");
+        zprintf1 ("queue buffer is NULL!!\n");
         return -1;
      }
     /*display immediately */
@@ -777,7 +779,7 @@ int V4L2::imx_v4l2_do_queue_buffer(struct v4l2_buffer *v4l2buf)
 
     if (ioctl (v4l2_fd, VIDIOC_QBUF, v4l2buf) < 0)
     {
-      printf ("queue v4l2 buffer failed.!\n");
+      zprintf1 ("queue v4l2 buffer failed.!\n");
       return -1;
     }
 
@@ -793,8 +795,11 @@ int V4L2::imx_v4l2_queue_v4l2memblk (PhyMemBlock *mem)
 
   v4l2buf = imx_v4l2_find_buffer(mem);
 
-  if (!v4l2buf)
-    return -1;
+    if (!v4l2buf)
+    {
+        zprintf1("imx_v4l2_find_buffer error!\n");
+        return -1;
+    }
 
   index = v4l2buf->index;
 
@@ -836,7 +841,7 @@ int V4L2::imx_v4l2_queue_v4l2memblk (PhyMemBlock *mem)
       if (imx_v4l2_do_queue_buffer (v4lbuf_queued_before_streamon[i]) < 0)
       {
 //        handle->buffer_pair[handle->v4lbuf_queued_before_streamon[i]->index].v4l2memblk = NULL;
-//        GST_ERROR ("queue buffers before streamon failed.");
+        zprintf1 ("queue buffers before streamon failed.!\n");
         return -1;
       }
     }
@@ -854,6 +859,7 @@ int V4L2::imx_v4l2_queue_v4l2memblk (PhyMemBlock *mem)
   if (imx_v4l2_do_queue_buffer (v4l2buf) < 0)
   {
 //    handle->buffer_pair[v4l2buf->index].v4l2memblk = NULL;
+    zprintf1("imx_v4l2_do_queue_buffer error!\n");
     return -1;
   }
 
@@ -905,13 +911,13 @@ int V4L2::v4l2_display_init(string devname)
     fmt = display_fmt_to_v4l2_fmt(fmt);
     if(fmt == 0)
     {
-        printf("Unsupported display format, check the display config file.!\n");
+        zprintf1("Unsupported display format, check the display config file.!\n");
         return -1;
     }
 
     if(imx_v4l2out_config_input(fmt, &rect) < 0)
     {
-        printf("imx v4l2 out config input error!\n");
+        zprintf1("imx v4l2 out config input error!\n");
         return -2;
     }
 
@@ -926,7 +932,7 @@ int V4L2::v4l2_display_init(string devname)
 
     if (imx_v4l2_set_buffer_count (DISPLAY_NUM_BUFFERS, V4L2_MEMORY_MMAP) < 0)
     {
-        printf ("zty configure v4l2 device  buffer count failed.!\n");
+        zprintf1 ("zty configure v4l2 device  buffer count failed.!\n");
         return -4;
     }
 
@@ -935,7 +941,7 @@ int V4L2::v4l2_display_init(string devname)
     {
         if(imx_v4l2_allocate_buffer(&memblk[i]) < 0)
         {
-            printf("allocate memory from v4l2 device failed.!\n");
+            zprintf1("allocate memory from v4l2 device failed.!\n");
             return -4;
         }
     }

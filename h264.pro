@@ -1,9 +1,25 @@
 TEMPLATE = app
 CONFIG += console C++11
+#CONFIG += console
 CONFIG -= app_bundle
 CONFIG -= qt
 
-QMAKE_CXXFLAGS += -std=c++11
+DEFINES += BREAKPAD
+
+#QMAKE_CXXFLAGS += -std=c++11
+QMAKE_CXXFLAGS += -std=gnu++11
+
+
+for(libname,DEFINES){
+    contains(libname,BREAKPAD){
+        message("BREAKPAD")
+        BREAKPADLIBDIR=/home/z/zty/a9/xianshi/vpulib/
+        LIBS += -L$$BREAKPADLIBDIR/lib -lbreakpad_client
+        INCLUDEPATH += $$BREAKPADLIBDIR/include/breakpad
+        INCLUDEPATH += $$BREAKPADLIBDIR/include/breakpad/client
+        INCLUDEPATH += $$BREAKPADLIBDIR/include/breakpad/client/linux/handler
+    }
+}
 
 linux-gnueabi-oe-g++{
     message("oearm")
@@ -14,6 +30,7 @@ SOURCES += \
         date/com_date.cpp \
         h264depay/h264depay.cpp \
         main.cpp \
+        netlinkstatus/netlinkstatus.cpp \
         rtcp/rtcp.cpp \
         rtp/rtp.cpp \
         rtsp/rtsp.cpp \
@@ -31,6 +48,7 @@ HEADERS += \
     epoll/e_poll.h \
     h264depay/h264depay.h \
     mutex/mutex_class.h \
+    netlinkstatus/netlinkstatus.h \
     rtcp/rtcp.h \
     rtp/rtp.h \
     rtsp/rtsp.h \

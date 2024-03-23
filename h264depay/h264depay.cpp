@@ -448,7 +448,7 @@ int H264Depay::data_porcess(uint8_t * buf, int size)
         next_seq++;
     }
 //   zprintf1("receive end seq %d next %d!\n", seq, next_seq);
-
+    printf("receive end seq %d next %d!\n", seq, next_seq);
 //    return 0;
     h264buf->write_h264buf(buf+H264_HEAD_MIN_LEN, size-H264_HEAD_MIN_LEN, seq, drop);
     return 0;
@@ -489,6 +489,10 @@ void H264Depay::run()
 
     while(1)
     {
+//        while(1)
+//        {
+//            sleep(1);
+//        }
         sem_wait(&h264buf->mgsem);
         size = h264buf->get_h264buf(&buf);
 

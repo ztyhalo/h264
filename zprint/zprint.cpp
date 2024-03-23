@@ -47,7 +47,7 @@ void PRINTF_CLASS::printf_class_init(string dir)
                 gettimeofday(&tv, NULL);
                 p = localtime(&tv.tv_sec);
                 memset(buf, 0x00, sizeof(buf));
-                sprintf(buf,"%02d-%02d_%02d_%03d_%02d.log",
+                sprintf(buf,"%02d-%02d_%02d_%02d_%02d.log",
                        1+p->tm_mon, p->tm_mday,
                        p->tm_hour, p->tm_min, p->tm_sec);
                 string log = buf;
@@ -71,7 +71,7 @@ void PRINTF_CLASS::printf_class_init(string dir)
 void PRINTF_CLASS::zprintf(const char * format, ...)
 {
     va_list args;
-
+    if(mark == 0) return;
     if(pfd != NULL)
     {
         lock();
@@ -115,6 +115,7 @@ void PRINTF_CLASS::printf_init(const char * name, int fd)
 void PRINTF_CLASS::timeprintf(const char * format, ...)
 {
     va_list args;
+    if(mark == 0) return;
      lock();
     if(pfd != NULL)
     {
