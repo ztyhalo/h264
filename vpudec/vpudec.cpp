@@ -26,7 +26,7 @@ int G2dDISPLAY::alloc_g2d_mem(void)
     int i;
     for(i = 0; i < G2D_BLOCK_BUF; i++)
     {
-        block[i].size = PAGE_ALIGN(3133440);
+        block[i].size = PAGE_ALIGN(3133440);  //1920*1080*1.5
         pbuf = g2d_alloc(block[i].size, 0);
           if (!pbuf) {
             zprintf1 ("g2d_alloc failed.");
@@ -124,10 +124,11 @@ int VpuDec::vpu_framebuffer_alloc(void)
     VpuDecRetCode ret;
     VpuMemDesc mem_desc;
     memset(framebuffer, 0x00, sizeof(framebuffer));
+
     for(i = 0; i < FRAME_BUF_SIZE; i++)
     {
         memset(&mem_desc, 0, sizeof(VpuMemDesc));
-        mem_desc.nSize = PAGE_ALIGN(524288*4); //524288 PS_SAVE_SIZE
+        mem_desc.nSize = PAGE_ALIGN(524288); //524288 PS_SAVE_SIZE
         ret = VPU_DecGetMem(&mem_desc);
         if (ret == VPU_DEC_RET_SUCCESS)
         {
@@ -135,7 +136,7 @@ int VpuDec::vpu_framebuffer_alloc(void)
              memcpy(frameinfo+i, &mem_desc, sizeof(mem_desc));
              framebuffer[i].pbufMvCol = (unsigned char* )mem_desc.nPhyAddr;
              framebuffer[i].pbufVirtMvCol = (unsigned char* )mem_desc.nVirtAddr;
-             printf("zty vpu allocator malloc size %d paddr: 0x%lx vaddr: 0x%lx!\n",mem_desc.nSize , mem_desc.nPhyAddr, mem_desc.nVirtAddr);
+//             printf("zty vpu allocator malloc size %d paddr: 0x%lx vaddr: 0x%lx!\n",mem_desc.nSize , mem_desc.nPhyAddr, mem_desc.nVirtAddr);
         }
         else
         {
@@ -197,9 +198,9 @@ int VpuDec::vpu_mem_init(void)
         size = vpu_internal_mem.mem_info.MemSubBlock[i].nAlignment \
            + vpu_internal_mem.mem_info.MemSubBlock[i].nSize;
 
-        printf("zty sub block %d  type: %s  size: %d!\n", i, \
-        (vpu_internal_mem.mem_info.MemSubBlock[i].MemType == VPU_MEM_VIRT) ? \
-        "virtual" : "phys", size);
+//        printf("zty sub block %d  type: %s  size: %d!\n", i,
+//        (vpu_internal_mem.mem_info.MemSubBlock[i].MemType == VPU_MEM_VIRT) ?
+//        "virtual" : "phys", size);
 
 //        printf("zty sub block %d  pVirtAddr: 0x%x  pPhyAddr: 0x%x!\n", i,
 //        (vpu_internal_mem.mem_info.MemSubBlock[i].pVirtAddr ) , vpu_internal_mem.mem_info.MemSubBlock[i].pPhyAddr);
@@ -510,8 +511,7 @@ int VpuDec::vpu_release_frame(void)
         printf("get used frame error!\n");
         return -1;
     }
-//    printf("zty get_gst_buffer phy memblk vaddr 0x%x!\n", rease->pbufVirtY);
-//    printf("zty get_gst_buffer phy memblk vaddr!\n");
+
     dec_ret = VPU_DecOutFrameDisplayed(handle, rease);
     if (dec_ret != VPU_DEC_RET_SUCCESS)
     {
@@ -532,7 +532,7 @@ int VpuDec::vpu_dec_data_output(void)
 
 
     framenum++;
-    printf("vpu dec out %d!\n", framenum);
+//    printf("vpu dec out %d!\n", framenum);
     dec_ret = VPU_DecGetOutputFrame(handle, &out_frame_info);
     if (dec_ret != VPU_DEC_RET_SUCCESS)
     {
@@ -565,16 +565,17 @@ int VpuDec::vpu_dec_data_output(void)
     }
 ////    frame_buffer = &framebuffer[index];
 ////    printf("zty frame buffer 0x%x!\n", frame_buffer);
-//    dec_ret = VPU_DecOutFrameDisplayed(handle, out_frame_info.pDisplayFrameBuf);
-//    if (dec_ret != VPU_DEC_RET_SUCCESS)
-//    {
-//        zprintf1("zty receive frame %d clearing display framebuffer %d failed: %s!\n",framenum, index, gst_vpu_dec_object_strerror(dec_ret));
-//        return -5;
-//    }
-      if(vpu_add_used_frame(out_frame_info.pDisplayFrameBuf) != 0)
-      {
-          printf("zty add used frame error!\n");
-      }
+
+    dec_ret = VPU_DecOutFrameDisplayed(handle, out_frame_info.pDisplayFrameBuf);
+    if (dec_ret != VPU_DEC_RET_SUCCESS)
+    {
+        zprintf1("zty receive frame %d clearing display framebuffer %d failed: %s!\n",framenum, index, gst_vpu_dec_object_strerror(dec_ret));
+        return -5;
+    }
+//      if(vpu_add_used_frame(out_frame_info.pDisplayFrameBuf) != 0)
+//      {
+//          printf("zty add used frame error!\n");
+//      }
     return 0;
 }
 
@@ -659,7 +660,8 @@ int VpuDec::vpu_decode_process(uint8_t * data, int size)
 
         if (buf_ret & VPU_DEC_NO_ENOUGH_BUF)  //没有足够的frame buffer
         {
-//           printf("zty VPU_DEC_NO_ENOUGH_BUF!\n");
+           zprintf1("hndz VPU_DEC_NO_ENOUGH_BUF!\n");
+           printf("hndz VPU_DEC_NO_ENOUGH_BUF!\n");
            ret = vpu_release_frame();
            if(ret != 0)
            {
