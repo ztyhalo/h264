@@ -65,7 +65,7 @@ class H264Depay:public Pth_Class
 {
 public:
     H264Depay();
-    ~H264Depay();
+    virtual ~H264Depay();
 public:
     uint16_t seq;
     uint16_t next_seq;

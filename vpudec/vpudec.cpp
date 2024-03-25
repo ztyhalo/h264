@@ -578,17 +578,16 @@ int VpuDec::vpu_dec_data_output(void)
     return 0;
 }
 
-static int testMark = 0;
-static int savemark = 0;
-static uint8_t * saveadd = 0;
 
-int VpuDec::vpu_decode_process(uint8_t * data, int size, uint8_t *ext, int extsize, int * okmark)
+
+
+int VpuDec::vpu_decode_process(uint8_t * data, int size)
 {
     VpuBufferNode in_data;
-    int buf_ret;
     VpuDecRetCode dec_ret;
+
+    int buf_ret;
     int ret = 0;
-    int frameok = 0;
 
 
 
@@ -598,95 +597,73 @@ int VpuDec::vpu_decode_process(uint8_t * data, int size, uint8_t *ext, int extsi
     in_data.pVirAddr = data;
     in_data.sCodecData.pData = vpu_data.pData;
     in_data.sCodecData.nSize = vpu_data.nSize;
-
-    printf("zty size %d framenum %d!\n", size, framenum);
-//    if(framenum == 121)
-//    {
-//        in_data.nSize = extsize;
-//        in_data.pVirAddr = ext;
-//    }
-//     printf("zty size\n");
-//    if(size > 80000 && savemark == 0)
-//    {
-//        saveadd = data;
-//        frameok = 1;
-//        savemark = 1;
-//    }
     while(1)
     {
-//        if(framenum >12)
-//            return 0;
+
         dec_ret = VPU_DecDecodeBuf(handle, &in_data, &buf_ret);
         if (dec_ret != VPU_DEC_RET_SUCCESS)
         {
-            int i, j;
-             printf("failed to decode frame: %s", \
-                 gst_vpu_dec_object_strerror(dec_ret));
+            uint i;
+             zprintf1("failed to decode frame: %s !\n", gst_vpu_dec_object_strerror(dec_ret));
              printf("indaa.nsize %d process %d!\n", in_data.nSize, framenum);
 
              printf("zty in_data.sCodecData.nSize %d!\n", in_data.sCodecData.nSize);
+
              for(i = 0; i < in_data.sCodecData.nSize; i++)
              {
-               printf("0x%x ", in_data.sCodecData.pData[i]);
+                printf("0x%x ", in_data.sCodecData.pData[i]);
              }
              printf("\n");
-//             j= 0;
+
              for(i = 0; i < 38; i++)
              {
                  printf("0x%x ", in_data.pVirAddr[i]);
-//                 if(j >15)
-//                 {
-//                     printf("\n");
-//                     j = 0;
-//                 }
-//                 j++;
              }
              printf("\n");
-//             printf("error end!\n");
+
              VPU_DecReset(handle);
              return -1;
         }
 
 //        printf("zty vpu decodebuf 0x%x!\n", buf_ret);
 
-        if (buf_ret & VPU_DEC_INIT_OK || buf_ret & VPU_DEC_RESOLUTION_CHANGED)
+        if (buf_ret & VPU_DEC_INIT_OK || buf_ret & VPU_DEC_RESOLUTION_CHANGED) //分辨率改变
         {
-          if (buf_ret & VPU_DEC_RESOLUTION_CHANGED)
-          {
+            if (buf_ret & VPU_DEC_RESOLUTION_CHANGED)
+            {
               printf("zty resolution change!\n");
-          }
-          ret = vpu_dec_object_handle_reconfig();
-          if (ret != 0)
-          {
-            printf("gst_vpu_dec_object_handle_reconfig fail: %d\n", ret);
-            return ret;
-          }
+            }
+            ret = vpu_dec_object_handle_reconfig();
+            if (ret != 0)
+            {
+                printf("gst_vpu_dec_object_handle_reconfig fail: %d\n", ret);
+                return ret;
+            }
+            else
+            {
+                printf("vpu reconfig!\n");
+            }
         }
 
-        if (buf_ret & VPU_DEC_OUTPUT_DIS)
+        if (buf_ret & VPU_DEC_OUTPUT_DIS)  //vpu解码成功有帧输出
         {
-//            int i;
 //            printf("zty VPU_DEC_OUTPUT_DIS!\n");
 
-//            for(i = 0; i < 38; i++)
-//            {
-//                printf("0x%x ", saveadd[i]);
-//            }
-//            printf("\n");
-            testMark =0;
-            ret = vpu_dec_data_output ();
+            ret = vpu_dec_data_output();
             if(ret != 0)
+            {
+                zprintf1("vpu dec data output fail %d!\n", ret);
                 return ret;
-            *okmark= 38;
+            }
         }
 
-        if (buf_ret & VPU_DEC_NO_ENOUGH_BUF)
+        if (buf_ret & VPU_DEC_NO_ENOUGH_BUF)  //没有足够的frame buffer
         {
 //           printf("zty VPU_DEC_NO_ENOUGH_BUF!\n");
            ret = vpu_release_frame();
            if(ret != 0)
            {
-               printf("vpu release frame error!\n");
+               zprintf1("vpu release frame error!\n");
                return ret;
            }
 
@@ -694,47 +671,40 @@ int VpuDec::vpu_decode_process(uint8_t * data, int size, uint8_t *ext, int extsi
 
         if (buf_ret & VPU_DEC_OUTPUT_MOSAIC_DIS)
         {
-           printf("zty VPU_DEC_OUTPUT_MOSAIC_DIS!\n");
+           zprintf1("zty VPU_DEC_OUTPUT_MOSAIC_DIS!\n");
         }
 
         if (buf_ret & VPU_DEC_FLUSH)
         {
-          printf("zty VPU_DEC_FLUSH!\n");
+          zprintf1("zty VPU_DEC_FLUSH!\n");
         }
 
         if (buf_ret & VPU_DEC_OUTPUT_DROPPED || buf_ret & VPU_DEC_SKIP || buf_ret & VPU_DEC_OUTPUT_REPEAT)
         {
-           printf("zty VPU_DEC_OUTPUT_DROPPED!\n");
+           zprintf1("zty VPU_DEC_OUTPUT_DROPPED!\n");
         }
 
         if (buf_ret & VPU_DEC_OUTPUT_EOS)
         {
-           printf("zty VPU_DEC_OUTPUT_EOS!\n");
-          break;
+            zprintf1("zty VPU_DEC_OUTPUT_EOS!\n");
+            break;
         }
 
-        if (buf_ret & VPU_DEC_NO_ENOUGH_INBUF)
+        if (buf_ret & VPU_DEC_NO_ENOUGH_INBUF) //没有足够的input buffer 应该是数据不够
         {
 //            printf("zty VPU_DEC_NO_ENOUGH_INBUF!\n");
-//          testMark++;
-//          if(testMark >= 2)
-//          {
-//               printf("zty VPU_DEC_NO_ENOUGH_INBUF!\n");
-//          }
-          break;
+            break;
         }
 
         if ((buf_ret & VPU_DEC_INPUT_USED))
         {
-            testMark = 0;
 //            printf("zty VPU_DEC_INPUT_USED!\n");
             if (in_data.nSize)
-             {
-//              printf("zty in data size 0!\n");
-              in_data.nSize = 0;
-              in_data.pVirAddr = 0;
-             }
-         }
+            {
+                in_data.nSize = 0;
+                in_data.pVirAddr = 0;
+            }
+        }
 
     }
     return ret;

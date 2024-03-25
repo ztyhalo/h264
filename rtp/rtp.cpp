@@ -34,24 +34,15 @@ void RTP::run()
         {
 
            while((ret = read(socket_fd, buf,sizeof(buf))) >0)
-//            ret = read(socket_fd, buf,sizeof(buf));
            {
                if(this->rxcallback != NULL)
                     this->rxcallback(this, buf, ret);
-//               printf("zty receive buf %d!\n", ret);
            }
 
         }
-//        else
-//        {
-//            printf("wati over!\n");
-//        }
-//        ret = udp_read(buf, 2048);
-
-//        if(ret > 0)
-//        {
-//            if(this->rxcallback != NULL)
-//                 this->rxcallback(this, buf, ret);
-//        }
+        else
+        {
+            printf("wati over!\n");
+        }
     }
 }

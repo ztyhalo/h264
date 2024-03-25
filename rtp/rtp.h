@@ -16,7 +16,7 @@ public:
         next_seq = 0;
         next_p = NULL;
     }
-    ~RTP();
+    virtual ~RTP();
 public:
     string session;
     int port;

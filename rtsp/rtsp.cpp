@@ -180,9 +180,10 @@ RTSP::~RTSP()
 
 void RTSP::setup_message_parse (char * buf, size_t n)
 {
+    (void)n;
     string seeionstr = buf;
-//    string sessionVal;
-    int pos = 0;
+
+    size_t pos = 0;
     int posend = 0;
 
     cout << "zty " << seeionstr <<endl;

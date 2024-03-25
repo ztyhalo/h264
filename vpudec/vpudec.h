@@ -71,7 +71,8 @@ public:
     int vpu_init(void);
     int vpu_open(void);
     int vpu_mem_init(void);
-    int vpu_decode_process(uint8_t * data, int size, uint8_t *ext, int extsize, int * okmark);
+//    int vpu_decode_process(uint8_t * data, int size, uint8_t *ext, int extsize, int * okmark);
+    int vpu_decode_process(uint8_t * data, int size);
     int vpu_dec_object_handle_reconfig(void);
     int set_vpu_codec_data(unsigned char * buf, unsigned int size);
     int vpu_framebuffer_alloc(void);
