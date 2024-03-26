@@ -17,9 +17,13 @@ NetlinkStatus::NetlinkStatus(string ethname)
     int err;
     struct ifreq ifr;
     struct ethtool_value edata;
+
+
     edata.cmd = ETHTOOL_GLINK;
     edata.data = 0;
     linkstate = 0;
+    nl_sock = 0;
+    netlinkfater = NULL;
 
     eth = ethname;
 
@@ -43,13 +47,23 @@ NetlinkStatus::NetlinkStatus(string ethname)
         perror("ioctl:");
     }
     close(skfd);
+
 }
 
-//NetlinkStatus::~NetlinkStatus()
-//{
-//    printf("delete!\n");
-//    zprintf1("delete netlinkstatus!\n");
-//}
+NetlinkStatus::~NetlinkStatus()
+{
+    cout << "delete netlinkstatus!" << endl;
+    zprintf4("delete netlinkstatus!\n");
+    stop();
+    if(nl_sock >0)
+    {
+        close(nl_sock);
+        nl_sock = 0;
+    }
+    netlinkfater = NULL;
+    netlinkcb = NULL;
+
+}
 
 int NetlinkStatus::getLinkstate(void)
 {
@@ -60,13 +74,13 @@ void NetlinkStatus::run()
 {
     struct sockaddr_nl nladdr;
     int status;
-    int nl_sock;
     char buf[2048];
     struct iovec iov;
     struct msghdr msg;
-//    int err;
     struct rtattr *attr;
     int len;
+
+//    int err;
 //    struct ifreq ifr;
 
     memset(&nladdr, 0, sizeof(nladdr));
@@ -157,11 +171,17 @@ void NetlinkStatus::run()
                                         zprintf1("网线已连接\n");
                                         printf("网线已连接\n");
                                         linkstate = 1;
+
                                     }
                                      else {
                                         zprintf1("网线已断开\n");
                                         printf("网线已断开\n");
                                         linkstate = 0;
+
+                                    }
+                                    if(netlinkcb != NULL)
+                                    {
+                                        this->netlinkcb(this, linkstate);
                                     }
                             }
 
@@ -174,6 +194,7 @@ void NetlinkStatus::run()
     }
     zprintf1("zty netlink end!\n");
     close(nl_sock);
+    nl_sock = 0;
     return;
 }
 

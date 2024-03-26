@@ -31,7 +31,6 @@ static bool dumpCallback(const google_breakpad::MinidumpDescriptor& descriptor, 
 
 #define H264_VERSION "2.0"
 
-//NetlinkStatus * gLink = NULL;
 RTSP          * gRTSP = NULL;
 
 
@@ -39,10 +38,6 @@ void SignalFunc(int var)
 {
     ::printf("<DeviceMng signal1 exit %d val!>\n", var);
 
-//    if (gLink != NULL)
-//    {
-//        delete gLink;
-//    }
     if(gRTSP != NULL)
     {
         delete gRTSP;
@@ -91,24 +86,14 @@ int main(int argc, char* argv[])
     zprintf1("H264-%s start:\n", H264_VERSION);
 
 
-
-//    gLink = new NetlinkStatus("eth1");
-
-//    gLink->start();
-
-//    while(gLink->getLinkstate() != 1)
-//    {
-//        zprintf1("hndz h264 eth1 is no link!\n");
-//        sleep(1);
-//    }
-
     gRTSP = new RTSP;
 
 //    RTSP rtsp;
 
     cout << "ip " << ipaddr << " !" <<endl;
     gRTSP->rtsp_init(ipaddr);
-//    rtsp.rtsp_init(ipaddr);
+    gRTSP->rtsp_run();
+
 
 
 

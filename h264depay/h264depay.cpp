@@ -418,8 +418,8 @@ int H264Depay::data_porcess(uint8_t * buf, int size)
 
 
 /***********************************************************************************
- * 函数名：pro_rxmsg_callback
- * 功能：can协议接收处理回调函数
+ * 函数名：h264_pro_rxdata_callback
+ * 功能：rtp数据接收处理回调函数
  *
  ***********************************************************************************/
 int h264_pro_rxdata_callback(RTP * pro, void * buf, int size)

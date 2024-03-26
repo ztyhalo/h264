@@ -52,12 +52,7 @@ gst_rtsp_version_as_text (GstRTSPVersion version)
 }
 
 
-RTSP::RTSP()
-{
-    udprtp = NULL;
-    h264depay = NULL;
-//    link = NULL;
-}
+
 
 
 string
@@ -174,18 +169,30 @@ RTSP::~RTSP()
 {
     cout << "rtsp delete!" << endl;
 
+    stop();
 
     if(udprtp != NULL)
+    {
         delete udprtp;
+        udprtp = NULL;
+    }
     cout << "delete udprtp ok!" <<endl;
 
     if(h264depay != NULL)
+    {
         delete h264depay;
+        h264depay = NULL;
+    }
     cout << "delete h264ok" << endl;
 
     cout << "rtsp delete end!" << endl;
-//    if(link != NULL)
-//        delete link;
+    if(link != NULL)
+    {
+        delete link;
+        link = NULL;
+    }
+
+    sem_destroy(&netlinksem);
 }
 
 void RTSP::setup_message_parse (char * buf, size_t n)
@@ -213,6 +220,68 @@ void RTSP::setup_message_parse (char * buf, size_t n)
 
 }
 
+/***********************************************************************************
+ * 函数名：rtp网络状态回调函数
+ * 功能：rtp网络状态回调函数
+ *
+ ***********************************************************************************/
+int rtp_netlink_callback(RTP * pro, int s)
+{
+    (void)s;
+    RTSP * midpro = (RTSP *) pro->net_father;
+
+    if(midpro != NULL)
+        sem_post(&midpro->netlinksem);
+    return 0;
+}
+
+int eth_netlink_callback(NetlinkStatus * pro, int s)
+{
+    (void)s;
+    RTSP * midpro = (RTSP *) pro->netlinkfater;
+
+    if(midpro != NULL)
+        sem_post(&midpro->netlinksem);
+    return 0;
+}
+
+void RTSP::run()
+{
+    while(1)
+    {
+        sem_wait(&netlinksem);  //等待网络变化信号
+        if(link->getLinkstate() != ethlink) //网线变化
+        {
+            cout << "eth net change!" <<endl;
+            ethlink = link->getLinkstate();
+            if(ethlink == 1)
+            {
+                cout << "eth up!" << endl;
+                rtsp_stop();
+                rtsp_restart(url);
+
+            }
+            else
+            {
+                cout << "eth down!" << endl;
+            }
+        }
+        else
+        {
+            cout << "rtp net change!" <<endl;
+            if(udprtp->state == 1)
+            {
+                cout << "rtp up!" << endl;
+            }
+            else
+            {
+                cout << "rtp down!" << endl;
+            }
+        }
+
+    }
+}
+
 int RTSP::rtsp_init(string ip)
 {
     GstRTSPMessage msg;
@@ -225,17 +294,22 @@ int RTSP::rtsp_init(string ip)
     memset(&msg, 0x00, sizeof(msg));
 //    url = "rtsp://169.254.1.168/0";
     url = "rtsp://" + ip + "/0";
+    ipaddr = ip;
     cout << url << endl;
 
-//    link = new NetlinkStatus("eth1");
+    link = new NetlinkStatus("eth1");
 
-//    link->start();
+    link->start();
 
-//    while(link->getLinkstate() != 1)
-//    {
-//        zprintf1("hndz h264 eth1 is no link!\n");
-//        sleep(1);
-//    }
+    while(link->getLinkstate() != 1)
+    {
+        zprintf1("hndz h264 eth1 is no link!\n");
+        sleep(1);
+    }
+
+    ethlink = 1;
+    link->netlinkcb = eth_netlink_callback;
+    link->netlinkfater = this;
 
 
     tcp_client_init(554, ip.c_str());
@@ -293,7 +367,10 @@ int RTSP::rtsp_init(string ip)
    h264depay->rtp_h264_init(udprtp);
    udprtp->rtp_init(session, initport);
    h264depay->start();
-//   udprtp->start();
+
+   udprtp->net_father = this;
+   udprtp->netstatecb = rtp_netlink_callback;
+   udprtp->start();
    gst_rtsp_message_init_request(&msg, GST_RTSP_SETUP, url.c_str());
    msg_str = message_to_string(&msg);
    tcp_write((void *)msg_str.c_str(), msg_str.length());
@@ -313,12 +390,83 @@ int RTSP::rtsp_init(string ip)
    msg_str = message_to_string(&msg);
    tcp_write((void *)msg_str.c_str(), msg_str.length());
 
-//   while(1)
-//   {
-//       sleep(50);
-//   }
-   udprtp->run();
+   return 0;
 
+}
+
+int RTSP::rtsp_run(void)
+{
+    while(1)
+    {
+        sem_wait(&netlinksem);  //等待网络变化信号
+        if(link->getLinkstate() != ethlink) //网线变化
+        {
+            cout << "eth net change!" <<endl;
+            ethlink = link->getLinkstate();
+            if(ethlink == 1)
+            {
+                cout << "eth up!" << endl;
+                rtsp_stop();
+                rtsp_restart(ipaddr);
+            }
+            else
+            {
+                cout << "eth down!" << endl;
+            }
+        }
+        else
+        {
+            cout << "rtp net change!" <<endl;
+            if(udprtp->state == 1)
+            {
+                cout << "rtp up!" << endl;
+            }
+            else
+            {
+                cout << "rtp down!" << endl;
+            }
+        }
+
+    }
     return 0;
+}
 
+int  RTSP::rtsp_stop(void)
+{
+    cout << "rtsp stop!" << endl;
+
+    stop();
+    close_fd();
+
+    if(udprtp != NULL)
+    {
+        delete udprtp;
+        udprtp = NULL;
+    }
+    cout << "delete udprtp ok!" <<endl;
+
+    if(h264depay != NULL)
+    {
+        delete h264depay;
+        h264depay = NULL;
+    }
+    cout << "delete h264ok" << endl;
+
+    cout << "rtsp delete end!" << endl;
+    if(link != NULL)
+    {
+        delete link;
+        link = NULL;
+    }
+
+    sem_destroy(&netlinksem);
+    return 0;
+}
+
+
+int RTSP::rtsp_restart(string ip)
+{
+    sem_init(&netlinksem, 0, 0);
+    return rtsp_init(ip);
+//    return 0;
 }

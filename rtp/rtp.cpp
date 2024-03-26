@@ -5,6 +5,7 @@ RTP::~RTP()
     cout << "delete rtp " <<endl;
     stop();
     rxcallback = NULL;
+    netstatecb = NULL;
 }
 
 
@@ -28,12 +29,24 @@ void RTP::run()
 
     char buf[2048];
     int ret;
+    int overnum = 0;
 //    this->set_timeover(5);
     while (1)
     {
 
         if(wait_fd_change(1000) != -1)
         {
+           overnum = 0;
+
+           if(state != 1)
+           {
+                state = 1; //已经有数据
+                if(this->netstatecb != NULL)
+                {
+                    this->netstatecb(this, state);
+                }
+           }
+
 
            while((ret = read(socket_fd, buf,sizeof(buf))) >0)
            {
@@ -44,7 +57,20 @@ void RTP::run()
         }
         else
         {
-            printf("wati over!\n");
+            overnum++;
+            if(overnum >3)
+            {
+                printf("wati over!\n");
+                overnum = 0;
+                if(state != 0)
+                {
+                    state = 0;
+                    if(this->netstatecb != NULL)
+                    {
+                        this->netstatecb(this, state);
+                    }
+                }
+            }
         }
     }
 }

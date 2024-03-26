@@ -7,7 +7,7 @@
 #include "tcp/tcp_client.h"
 
 #include "rtp/rtp.h"
-
+#include "epoll/e_poll.h"
 #include "h264depay/h264depay.h"
 #include "netlinkstatus/netlinkstatus.h"
 
@@ -228,26 +228,40 @@ typedef struct _GstRTSPMessage
 
 
 
-class RTSP:public TCP_CLIENT
+class RTSP:public NCbk_Poll,public TCP_CLIENT
 {
 public:
-    RTSP();
-    RTSP(char * ip):TCP_CLIENT(554,ip)
+    RTSP():NCbk_Poll(1),TCP_CLIENT()
+    {
+        udprtp = NULL;
+        h264depay = NULL;
+        link = NULL;
+        ethlink = 0;
+        sem_init(&netlinksem, 0, 0);
+    }
+    RTSP(char * ip):NCbk_Poll(1),TCP_CLIENT(554,ip)
     {
         ;
     }
-    ~RTSP();
+    virtual ~RTSP();
     int rtsp_init(string ip);
+    int rtsp_run(void);
+    int rtsp_stop(void);
+    int rtsp_restart(string ip);
     string message_to_string (GstRTSPMessage * message);
     void setup_message_parse (char * buf, size_t n);
 public:
     string url;
+    string ipaddr;
     int cseq ;
     int initport;
+    sem_t  netlinksem;
     string session;
     RTP * udprtp;
     H264Depay * h264depay;
-//    NetlinkStatus * link;
+    NetlinkStatus * link;
+    int ethlink;
+    void run();
 
 };
 

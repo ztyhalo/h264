@@ -16,6 +16,7 @@ G2dDISPLAY::~G2dDISPLAY()
         {
             pbuf = (struct g2d_buf*) block[i].user_data;
             g2d_free (pbuf);
+            block[i].user_data = NULL;
         }
     }
 }
