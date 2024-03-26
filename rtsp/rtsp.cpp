@@ -402,28 +402,34 @@ int RTSP::rtsp_run(void)
         if(link->getLinkstate() != ethlink) //网线变化
         {
             cout << "eth net change!" <<endl;
+            zprintf1("eth net change!\n");
             ethlink = link->getLinkstate();
             if(ethlink == 1)
             {
                 cout << "eth up!" << endl;
+                zprintf1("eth up!\n");
                 rtsp_stop();
                 rtsp_restart(ipaddr);
             }
             else
             {
                 cout << "eth down!" << endl;
+                zprintf1("eth down!\n");
             }
         }
         else
         {
             cout << "rtp net change!" <<endl;
+            zprintf1("rtp net change!\n");
             if(udprtp->state == 1)
             {
                 cout << "rtp up!" << endl;
+                zprintf1("rtp up!\n");
             }
             else
             {
                 cout << "rtp down!" << endl;
+                zprintf1("rtp down!\n");
             }
         }
 
