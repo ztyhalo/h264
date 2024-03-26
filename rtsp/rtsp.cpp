@@ -56,6 +56,7 @@ RTSP::RTSP()
 {
     udprtp = NULL;
     h264depay = NULL;
+//    link = NULL;
 }
 
 
@@ -172,10 +173,19 @@ gst_rtsp_message_init_request (GstRTSPMessage * msg, GstRTSPMethod method,
 RTSP::~RTSP()
 {
     cout << "rtsp delete!" << endl;
+
+
     if(udprtp != NULL)
         delete udprtp;
+    cout << "delete udprtp ok!" <<endl;
+
     if(h264depay != NULL)
         delete h264depay;
+    cout << "delete h264ok" << endl;
+
+    cout << "rtsp delete end!" << endl;
+//    if(link != NULL)
+//        delete link;
 }
 
 void RTSP::setup_message_parse (char * buf, size_t n)
@@ -216,6 +226,17 @@ int RTSP::rtsp_init(string ip)
 //    url = "rtsp://169.254.1.168/0";
     url = "rtsp://" + ip + "/0";
     cout << url << endl;
+
+//    link = new NetlinkStatus("eth1");
+
+//    link->start();
+
+//    while(link->getLinkstate() != 1)
+//    {
+//        zprintf1("hndz h264 eth1 is no link!\n");
+//        sleep(1);
+//    }
+
 
     tcp_client_init(554, ip.c_str());
     tcp_client_connect();
@@ -265,7 +286,6 @@ int RTSP::rtsp_init(string ip)
   //parse discribe
 
    h264depay = new H264Depay;
-
 
    udprtp = new RTP;
 

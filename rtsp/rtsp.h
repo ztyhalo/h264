@@ -9,6 +9,7 @@
 #include "rtp/rtp.h"
 
 #include "h264depay/h264depay.h"
+#include "netlinkstatus/netlinkstatus.h"
 
 using namespace std;
 
@@ -246,6 +247,7 @@ public:
     string session;
     RTP * udprtp;
     H264Depay * h264depay;
+//    NetlinkStatus * link;
 
 };
 

@@ -114,8 +114,15 @@ public:
     ~ z_poll()
     {
         zprintf4("destory zpoll!\n");
+        cout << "delete zpoll " <<endl;
         if(active)
-            close(epfd);
+        {
+
+            if(epfd)
+                close(epfd);
+            active = 0;
+            epfd = 0;
+        }
     }
 public:
     int epfd;
@@ -146,13 +153,15 @@ public:
          running = 0;
      }
      ~Pth_Class(){
-         zprintf4("destory Pth_Class!\n");
+//         zprintf4("destory Pth_Class!\n");
+         cout <<"delete pthclass " << pid << endl;
          if(pid > 0){
             running = 0;
             pthread_cancel(pid);
             pthread_join(pid, NULL);
             pid = 0;
          }
+         cout << "destory Pth_Class delete over!" <<endl;
          zprintf1("destory Pth_Class delete over!\n");
      }
 //     void pth_class_exit(void){
@@ -176,6 +185,7 @@ public:
              {
                  running = 1;
                  zprintf1("zty create pid!\n");
+                 cout << "zty create pid!" << pid << endl;
                  return 0;
              }
          }
@@ -183,15 +193,38 @@ public:
          return -1;
      }
 
+     int stop(){
+         cout << "stop pid " << pid <<endl;
+         if(pid > 0)
+         {
+             running = 0;
+             pthread_cancel(pid);
+             pthread_join(pid, NULL);
+             pid = 0;
+         }
+         zprintf1("stop pid %d end\n",(int)pid);
+         return 0;
+     }
+
      virtual void run() = 0;
 
 
 };
 
-class NCbk_Poll:public z_poll,public Pth_Class
+//class NCbk_Poll:public z_poll,public Pth_Class
+//{
+//public:
+//     NCbk_Poll(int max):z_poll(max){
+//     }
+//};
+
+class NCbk_Poll:public Pth_Class,public z_poll
 {
 public:
      NCbk_Poll(int max):z_poll(max){
+     }
+     ~NCbk_Poll(){
+         cout << "delete NCbk_Poll!" << endl;
      }
 };
 

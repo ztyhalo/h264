@@ -31,16 +31,22 @@ static bool dumpCallback(const google_breakpad::MinidumpDescriptor& descriptor, 
 
 #define H264_VERSION "2.0"
 
-NetlinkStatus * glink = NULL;
+//NetlinkStatus * gLink = NULL;
+RTSP          * gRTSP = NULL;
 
 
 void SignalFunc(int var)
 {
     ::printf("<DeviceMng signal1 exit %d val!>\n", var);
 
-    if (glink != NULL)
+//    if (gLink != NULL)
+//    {
+//        delete gLink;
+//    }
+    if(gRTSP != NULL)
     {
-        delete glink;
+        delete gRTSP;
+        gRTSP = NULL;
     }
 #ifdef BREAKPAD
     if (eh != nullptr)
@@ -86,15 +92,26 @@ int main(int argc, char* argv[])
 
 
 
-    glink = new NetlinkStatus("eth1");
+//    gLink = new NetlinkStatus("eth1");
 
-    glink->start();
+//    gLink->start();
+
+//    while(gLink->getLinkstate() != 1)
+//    {
+//        zprintf1("hndz h264 eth1 is no link!\n");
+//        sleep(1);
+//    }
+
+    gRTSP = new RTSP;
+
+//    RTSP rtsp;
+
+    cout << "ip " << ipaddr << " !" <<endl;
+    gRTSP->rtsp_init(ipaddr);
+//    rtsp.rtsp_init(ipaddr);
 
 
-    RTSP rtsp;
-     cout << "ip " << ipaddr << " !" <<endl;
-     rtsp.rtsp_init(ipaddr);
-//    rtsp.rtsp_init("169.254.1.168");
+
 #ifdef ARM
 //    vpudec = new VpuDec;
 //    vpudec->vpu_init();

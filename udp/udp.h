@@ -28,6 +28,10 @@ public:
     {
         creat_socket_fd(SOCK_DGRAM);
     }
+    ~UDP_CLASS()
+    {
+         cout << "UDP_CLASS delete!" << endl;;
+    }
 
     void udp_class_init(uint16_t port)
     {

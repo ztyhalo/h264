@@ -2,7 +2,9 @@
 
 RTP::~RTP()
 {
-    ;
+    cout << "delete rtp " <<endl;
+    stop();
+    rxcallback = NULL;
 }
 
 

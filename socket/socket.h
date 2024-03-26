@@ -70,7 +70,11 @@ public:
      {
          cout << "SOCKET_FD_CLASS delete!" << socket_fd << endl;
          if(socket_fd > 0)
+         {
              close(socket_fd);
+             socket_fd = 0;
+         }
+         cout << "socket fd closeis ok!" <<endl;
      }
      int creat_socket_fd(int type)
      {

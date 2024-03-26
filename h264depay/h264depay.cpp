@@ -374,6 +374,9 @@ H264Depay::H264Depay()
 
 H264Depay::~H264Depay()
 {
+    cout << "delete h264 depay!" <<endl;
+    stop();
+    cout << "delete h264buf start!" <<endl;
     if(h264buf != NULL)
         delete h264buf;
     if(vpudec != NULL)
