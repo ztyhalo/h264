@@ -89,6 +89,8 @@ int main(int argc, char* argv[])
     gRTSP = new RTSP;
 
 //    RTSP rtsp;
+//    rtsp.rtsp_init(ipaddr);
+//    rtsp.rtsp_run();
 
     cout << "ip " << ipaddr << " !" <<endl;
     gRTSP->rtsp_init(ipaddr);

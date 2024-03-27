@@ -70,6 +70,8 @@ public:
     ~VpuDec();
     int vpu_init(void);
     int vpu_open(void);
+    int vpu_open(VpuCodStd type);
+    int vpu_close(void);
     int vpu_mem_init(void);
 //    int vpu_decode_process(uint8_t * data, int size, uint8_t *ext, int extsize, int * okmark);
     int vpu_decode_process(uint8_t * data, int size);

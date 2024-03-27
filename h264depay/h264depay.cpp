@@ -337,6 +337,32 @@ int H264Buf::write_h264buf(uint8_t * buf, int size, int q, int drop)
     return 0;
 }
 
+int H264Buf::write_h264buf(int size)
+{
+    lock();
+    bufsize[wr] = size;
+    wr++;
+    wr %= H264_MAX_FRAME;
+    sz++;
+    receive_frame++;
+
+    unlock();
+    sem_post(&mgsem);
+    return 0;
+}
+int H264Buf::get_write_h264buf(uint8_t * * addr)
+{
+     int err = -1;
+     lock();
+     if(sz < H264_MAX_FRAME)
+     {
+         *addr = data[wr];
+         err = 0;
+     }
+     unlock();
+
+     return err;
+}
 
 int H264Buf::get_h264buf(uint8_t ** addr)
 {
@@ -436,6 +462,12 @@ void H264Depay::rtp_h264_init(void * pro)
     vpudec = new VpuDec;
     vpudec->vpu_init();
 
+}
+
+void H264Depay::rtp_h264_init(void)
+{
+    vpudec = new VpuDec;
+    vpudec->vpu_init();
 }
 
 void H264Depay::run()

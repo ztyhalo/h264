@@ -238,6 +238,7 @@ public:
         link = NULL;
         ethlink = 0;
         sem_init(&netlinksem, 0, 0);
+        sem_init(&m_imagesem, 0, 0);
     }
     RTSP(char * ip):NCbk_Poll(1),TCP_CLIENT(554,ip)
     {
@@ -250,12 +251,14 @@ public:
     int rtsp_restart(string ip);
     string message_to_string (GstRTSPMessage * message);
     void setup_message_parse (char * buf, size_t n);
+    void link_state_image_process(void);
 public:
     string url;
     string ipaddr;
     int cseq ;
     int initport;
     sem_t  netlinksem;
+    sem_t  m_imagesem;
     string session;
     RTP * udprtp;
     H264Depay * h264depay;

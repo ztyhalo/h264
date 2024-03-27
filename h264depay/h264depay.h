@@ -8,6 +8,7 @@
 #include "vpudec/vpudec.h"
 #include "epoll/e_poll.h"
 #include <semaphore.h>
+#include "rtp/rtp.h"
 
 #define H264_MAX_FRAME 150
 #define FRAME_MAX_NUM  200  //260
@@ -54,6 +55,8 @@ public:
     int write_h264buf(uint8_t * buf, int size, int q, int drop);
 //    int read_h264buf(uint8_t * buf);
     int get_h264buf(uint8_t * * addr);
+    int get_write_h264buf(uint8_t * * addr);
+    int write_h264buf(int size);
     int add_buf_rd(void);
     int set_sps_info(uint8_t * buf, int size);
     int set_pps_info(uint8_t * buf, int size);
@@ -77,10 +80,13 @@ public:
     int data_porcess(uint8_t * buf, int size);
 
     void rtp_h264_init(void * pro);
+    void rtp_h264_init(void);
     void run();
 
 
 
 };
+
+int h264_pro_rxdata_callback(RTP * pro, void * buf, int size);
 
 #endif // H264DEPAY_H

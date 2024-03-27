@@ -63,6 +63,9 @@ VpuDec::~VpuDec()
     int i;
     VpuDecRetCode ret;
 
+    VPU_DecClose(handle);
+    VPU_DecUnLoad();
+
     for(i = 0; i < FRAME_BUF_SIZE; i++)
     {
         if(frameinfo[i].nSize > 0)
@@ -346,7 +349,7 @@ static void printf_init_mem(VpuMemInfo * mem)
     }
 }
 
-int VpuDec::vpu_open(void)
+int VpuDec::vpu_open(VpuCodStd type)
 {
     VpuDecRetCode ret;
     VpuDecOpenParam open_param;
@@ -355,7 +358,7 @@ int VpuDec::vpu_open(void)
 
     memset(&open_param, 0, sizeof(open_param));
 
-    open_param.CodecFormat = VPU_V_AVC;
+    open_param.CodecFormat = type;   //VPU_V_MJPG; //VPU_V_AVC;
 
     open_param.nMapType = 0;
     open_param.nTiled2LinearEnable = 0;
@@ -404,6 +407,18 @@ int VpuDec::vpu_open(void)
     state = STATE_OPENED;
 
 
+    return 0;
+
+}
+
+int VpuDec::vpu_open(void)
+{
+    return vpu_open(VPU_V_AVC);
+}
+
+int VpuDec::vpu_close(void)
+{
+    VPU_DecClose(handle);
     return 0;
 }
 

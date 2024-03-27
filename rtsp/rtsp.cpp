@@ -1,6 +1,8 @@
 #include "rtsp.h"
 #include "date/com_date.h"
 
+const char * g_file[3] = {"/opt/001.jpg","/opt/002.jpg","/opt/003.jpg"};
+
 
 static const char *rtsp_methods[] = {
   "DESCRIBE",
@@ -245,8 +247,135 @@ int eth_netlink_callback(NetlinkStatus * pro, int s)
     return 0;
 }
 
+void linkstatusprocess(RTSP * rp)
+{
+
+    //每次读到的字符串长度
+    FILE * fp = NULL;
+    int    readTtl = 0;
+    int    retSize = 0;
+    int    fileSize = 0;
+    int    time = 0;
+  //  image_mutex_init();
+
+    char * file[3] = {"/opt/001.jpg","/opt/002.jpg","/opt/003.jpg"};
+    uint8_t * buf= NULL;
+
+    while(1){
+        //接收发送来的消息，因为之前已经将socket注册到组播中
+
+            fp = fopen(file[fileSize%3], "rb");
+
+            if(NULL == fp)
+            {
+                fileSize++;
+                continue;
+            }
+             fileSize++;
+             fileSize %= 3;
+            while(1)
+            {
+                rp->h264depay->h264buf->get_write_h264buf(&buf);
+                fseek(fp, 0, SEEK_SET);
+//                while(1)
+                {
+                    retSize = fread(buf, 1, FRAME_MAX_NUM * H264_DATA_SIZE, fp);
+                    //printf("read %d!\n", retSize);
+                    if(retSize <= FRAME_MAX_NUM * H264_DATA_SIZE)
+                        printf("ztytestread %d ok!\n", retSize);
+                    else
+                        printf("ztytestread %d error!\n", retSize);
+
+                }
+
+                rp->h264depay->h264buf->write_h264buf(retSize);
+                sleep(1);
+                if(rp->link->getLinkstate() == 1)
+                {
+                    cout << "link break!" <<endl;
+//                    zprintf1("link image size %d!\n", img_count);
+                    return ;
+                }
+                time++;
+                if(time >= 2)
+                {
+                    time = 0;
+                    break;
+                }
+            }
+            fclose(fp);
+
+        }
+
+
+    return ;
+}
+
+void RTSP::link_state_image_process(void)
+{
+
+    //每次读到的字符串长度
+    FILE * fp = NULL;
+    int    readTtl = 0;
+    int    retSize = 0;
+    int    fileSize = 0;
+    int    time = 0;
+  //  image_mutex_init();
+
+    uint8_t * buf= NULL;
+
+    while(1)
+    {
+        sem_wait(&m_imagesem);
+        fp = fopen(g_file[fileSize], "rb");
+
+        if(NULL == fp)
+        {
+            fileSize++;
+            continue;
+        }
+        fileSize++;
+        fileSize %= 3;
+        while(1)
+        {
+        rp->h264depay->h264buf->get_write_h264buf(&buf);
+        fseek(fp, 0, SEEK_SET);
+        //                while(1)
+        {
+        retSize = fread(buf, 1, FRAME_MAX_NUM * H264_DATA_SIZE, fp);
+        //printf("read %d!\n", retSize);
+        if(retSize <= FRAME_MAX_NUM * H264_DATA_SIZE)
+        printf("ztytestread %d ok!\n", retSize);
+        else
+        printf("ztytestread %d error!\n", retSize);
+
+        }
+
+        rp->h264depay->h264buf->write_h264buf(retSize);
+        sleep(1);
+        if(rp->link->getLinkstate() == 1)
+        {
+        cout << "link break!" <<endl;
+        //                    zprintf1("link image size %d!\n", img_count);
+        return ;
+        }
+        time++;
+        if(time >= 2)
+        {
+        time = 0;
+        break;
+        }
+        }
+        fclose(fp);
+
+        }
+
+
+    return ;
+}
 void RTSP::run()
 {
+    linkstatusprocess(this);
     while(1)
     {
         sem_wait(&netlinksem);  //等待网络变化信号
@@ -358,15 +487,20 @@ int RTSP::rtsp_init(string ip)
    printf("zty sdp len %d!\n", ret);
 
   //parse discribe
-
-   h264depay = new H264Depay;
+    if(h264depay == NULL)
+    {
+        h264depay = new H264Depay;
+        h264depay->rtp_h264_init();
+        h264depay->start();
+    }
 
    udprtp = new RTP;
 
    udprtp->set_protocol(h264depay);
-   h264depay->rtp_h264_init(udprtp);
+//   h264depay->rtp_h264_init(udprtp);
+   udprtp->rxcallback = h264_pro_rxdata_callback;
    udprtp->rtp_init(session, initport);
-   h264depay->start();
+
 
    udprtp->net_father = this;
    udprtp->netstatecb = rtp_netlink_callback;
@@ -396,6 +530,7 @@ int RTSP::rtsp_init(string ip)
 
 int RTSP::rtsp_run(void)
 {
+
     while(1)
     {
         sem_wait(&netlinksem);  //等待网络变化信号
@@ -415,6 +550,10 @@ int RTSP::rtsp_run(void)
             {
                 cout << "eth down!" << endl;
                 zprintf1("eth down!\n");
+                this->h264depay->vpudec->vpu_close();
+                this->h264depay->vpudec->vpu_open(VPU_V_MJPG);
+                linkstatusprocess(this);
+                cout << "eth down end!" << endl;
             }
         }
         else
@@ -430,6 +569,8 @@ int RTSP::rtsp_run(void)
             {
                 cout << "rtp down!" << endl;
                 zprintf1("rtp down!\n");
+                this->h264depay->vpudec->vpu_close();
+                this->h264depay->vpudec->vpu_open(VPU_V_MJPG);
             }
         }
 
@@ -451,12 +592,12 @@ int  RTSP::rtsp_stop(void)
     }
     cout << "delete udprtp ok!" <<endl;
 
-    if(h264depay != NULL)
-    {
-        delete h264depay;
-        h264depay = NULL;
-    }
-    cout << "delete h264ok" << endl;
+//    if(h264depay != NULL)
+//    {
+//        delete h264depay;
+//        h264depay = NULL;
+//    }
+//    cout << "delete h264ok" << endl;
 
     cout << "rtsp delete end!" << endl;
     if(link != NULL)
@@ -473,6 +614,9 @@ int  RTSP::rtsp_stop(void)
 int RTSP::rtsp_restart(string ip)
 {
     sem_init(&netlinksem, 0, 0);
+
+    this->h264depay->vpudec->vpu_close();
+    this->h264depay->vpudec->vpu_open();
     return rtsp_init(ip);
 //    return 0;
 }
