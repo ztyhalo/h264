@@ -87,6 +87,7 @@ public:
 
 public:
     VpuDecState state;
+    VpuCodStd      m_frametype;
     VpuInternalMem vpu_internal_mem;
     VpuMemDesc     internal_mem_info;
     VpuFrameBuffer framebuffer[FRAME_BUF_SIZE];

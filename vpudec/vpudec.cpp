@@ -56,6 +56,7 @@ VpuDec::VpuDec()
     v4l2 = NULL;
     display = NULL;
     memset(&usedbuf, 0, sizeof(usedbuf));
+    m_frametype = VPU_V_AVC;
 
 }
 VpuDec::~VpuDec()
@@ -159,25 +160,28 @@ int VpuDec::vpu_register_frame_buf(void)
     VpuDecRetCode dec_ret;
     VpuFrameBuffer *vpu_frame;
 
-    display = new G2dDISPLAY;
-    display->alloc_g2d_mem();
+    if(display == NULL)
+    {
+        display = new G2dDISPLAY;
+        display->alloc_g2d_mem();
 
-    vpu_framebuffer_alloc();
+        vpu_framebuffer_alloc();
 
-   for(i = 0; i < FRAME_BUF_SIZE; i++)
-   {
-       vpu_frame = &(framebuffer[i]);
-       vpu_frame->nStrideY = 1920;
-       vpu_frame->nStrideC = 1920;
-       vpu_frame->pbufY  = display->block[i].paddr;
-       vpu_frame->pbufCb = vpu_frame->pbufY + (1920 * 1088); //info
-       vpu_frame->pbufCr = vpu_frame->pbufCb + 1;
-       vpu_frame->pbufVirtY = display->block[i].vaddr;
-       vpu_frame->pbufVirtCb = vpu_frame->pbufVirtY + (1920 * 1088);
-       vpu_frame->pbufVirtCr = vpu_frame->pbufVirtCb + 1;
+       for(i = 0; i < FRAME_BUF_SIZE; i++)
+       {
+           vpu_frame = &(framebuffer[i]);
+           vpu_frame->nStrideY = 1920;
+           vpu_frame->nStrideC = 1920;
+           vpu_frame->pbufY  = display->block[i].paddr;
+           vpu_frame->pbufCb = vpu_frame->pbufY + (1920 * 1088); //info
+           vpu_frame->pbufCr = vpu_frame->pbufCb + 1;
+           vpu_frame->pbufVirtY = display->block[i].vaddr;
+           vpu_frame->pbufVirtCb = vpu_frame->pbufVirtY + (1920 * 1088);
+           vpu_frame->pbufVirtCr = vpu_frame->pbufVirtCb + 1;
 
 
-   }
+       }
+    }
 
    dec_ret = VPU_DecRegisterFrameBuffer (handle, framebuffer, FRAME_BUF_SIZE);
    if (dec_ret != VPU_DEC_RET_SUCCESS)
@@ -185,6 +189,7 @@ int VpuDec::vpu_register_frame_buf(void)
        zprintf1("zty registering framebuffers failed: %s", gst_vpu_dec_object_strerror(dec_ret));
        return -1;
    }
+
    return 0;
 
 }
@@ -359,7 +364,7 @@ int VpuDec::vpu_open(VpuCodStd type)
     memset(&open_param, 0, sizeof(open_param));
 
     open_param.CodecFormat = type;   //VPU_V_MJPG; //VPU_V_AVC;
-
+    m_frametype = type;
     open_param.nMapType = 0;
     open_param.nTiled2LinearEnable = 0;
 

@@ -56,6 +56,7 @@ H264Buf::H264Buf()
     runok = true;
     memset(bufsize, 0, sizeof(bufsize));
     memset(data, 0, sizeof(data));
+    memset(m_type, 0, sizeof(m_type));
     sem_init(&mgsem, 0, 0);
 }
 
@@ -337,34 +338,64 @@ int H264Buf::write_h264buf(uint8_t * buf, int size, int q, int drop)
     return 0;
 }
 
-int H264Buf::write_h264buf(int size)
+int H264Buf::write_h264buf(int size, uint8_t dataty)
 {
-    lock();
+//    lock();
     bufsize[wr] = size;
+    m_type[wr] = dataty;
     wr++;
     wr %= H264_MAX_FRAME;
     sz++;
     receive_frame++;
 
+//    unlock();
+    sem_post(&mgsem);
+    return 0;
+}
+
+int H264Buf::write_h264data_buf(uint8_t * buf, int size, int q)
+{
+    if(sz >= H264_MAX_FRAME)
+    {
+        if(firstdrop == 0)
+        {
+            printf("receive data soquick wr %d rd %d seq %d!\n", wr, rd, seqid[rd]);
+            printf("rd size %d receive %d!\n", bufsize[rd], receive_frame);
+            firstdrop = 1;
+        }
+        return 0;
+    }
+
+    lock();
+    memcpy(data[wr], buf, size);
+
+    bufsize[wr] = size;
+    m_type[wr] = H264_DATA_TYPE;
+    seqid[wr] = q;
+    wr++;
+    wr %= H264_MAX_FRAME;
+    sz++;
+    receive_frame++;
     unlock();
     sem_post(&mgsem);
     return 0;
+
 }
 int H264Buf::get_write_h264buf(uint8_t * * addr)
 {
      int err = -1;
-     lock();
+//     lock();
      if(sz < H264_MAX_FRAME)
      {
          *addr = data[wr];
          err = 0;
      }
-     unlock();
+//     unlock();
 
      return err;
 }
 
-int H264Buf::get_h264buf(uint8_t ** addr)
+int H264Buf::get_h264buf(uint8_t ** addr, uint8_t * ty)
 {
     uint8_t * p = NULL;
     int size = 0;
@@ -373,6 +404,7 @@ int H264Buf::get_h264buf(uint8_t ** addr)
     {
         p = data[rd];
         size = bufsize[rd];
+        *ty = m_type[rd];
     }
     unlock();
     *addr = p;
@@ -395,6 +427,12 @@ H264Depay::H264Depay()
     seq = 0;
     next_seq = 0;
     proframe = 0;
+    m_size = 0;
+    m_runok = true;
+    m_streamtype = 0;
+    m_spsmark = 0;
+    m_ppsmark = 0;
+
     printf("zty h264init %d!\n", next_seq);
 }
 
@@ -402,13 +440,220 @@ H264Depay::~H264Depay()
 {
     cout << "delete h264 depay!" <<endl;
     stop();
-    cout << "delete h264buf start!" <<endl;
-    if(h264buf != NULL)
-        delete h264buf;
+
     if(vpudec != NULL)
         delete vpudec;
+
+    if(h264buf != NULL)
+        delete h264buf;
+
 }
 
+int H264Depay::set_sps_info(uint8_t * buf, int size)
+{
+
+    m_info.data[0] = 0x1;
+    m_info.data[1] = buf[5]; //profile
+    m_info.data[2] = buf[6]; //profile compat
+    m_info.data[3] = buf[7]; //level
+    m_info.data[4] = 0xff;   /* 6 bits reserved | 2 bits lengthSizeMinusOn */
+//    info.data[5] = 0xe0 | buf[3];
+    m_info.data[5] = 0xe1;  /* [5]: 3 bits reserved (111) + 5 bits number of sps (00001) */
+
+    memcpy(m_info.data +6, buf +2, size -2);
+    m_info.nSize = 6 + size -2;
+//    printf("set sps info len %d!\n", info.nSize);
+//    data_printf("set sps info len ", info.data, info.nSize);
+    return 0;
+}
+int H264Depay::set_pps_info(uint8_t * buf, int size)
+{
+
+    /*number of pps*/
+    /*16bits: pps_size*/
+    /*pps data */
+    m_info.data[m_info.nSize] = 0x01;
+    memcpy(m_info.data+m_info.nSize+1, buf+2, size -2);
+    m_info.nSize += (size -1);
+//    data_printf("set sps pps info len ", info.data, info.nSize);
+    return 0;
+}
+
+int H264Depay::data_parse(uint8_t * buf, int size, int q, int drop)
+{
+//    uint8_t nal_ref_idc;
+    uint8_t nal_unit_type;
+    uint32_t nalu_size;
+    uint32_t outsize;
+    uint32_t payload_len = size;
+    /* +---------------+
+     * |0|1|2|3|4|5|6|7|
+     * +-+-+-+-+-+-+-+-+
+     * |F|NRI|  Type   |
+     * +---------------+
+     *
+     * F must be 0.
+     */
+
+
+    if(drop == 1)
+    {
+        m_runok = false;
+    }
+
+    nal_unit_type = buf[0] & 0x1f;
+
+    switch(nal_unit_type)
+    {
+        case 0:
+        case 30:
+        case 31:
+            zprintf1("nala error type %d!\n", nal_unit_type);
+        break;
+        case 25:
+        case 24:
+        case 26:
+        case 27:
+            zprintf1("nala test add type %d!\n", nal_unit_type);
+           break;
+
+        case 28:
+        case 29:
+        {
+            /* FU-A      Fragmentation unit                 5.8 */
+            /* FU-B      Fragmentation unit                 5.8 */
+            bool S, E;
+
+            /* +---------------+
+             * |0|1|2|3|4|5|6|7|
+             * +-+-+-+-+-+-+-+-+
+             * |S|E|R|  Type   |
+             * +---------------+
+             *
+             * R is reserved and always 0
+             */
+            S = (buf[1] & 0x80) == 0x80;
+            E = (buf[1] & 0x40) == 0x40;
+
+            if(m_runok == false && S) //重新开始取
+                m_runok = true;
+            else if(m_runok ==false)
+                break;
+
+            if (S) {
+              /* NAL unit starts here */
+              uint8_t nal_header;
+
+              /* reconstruct NAL header */
+              nal_header = (buf[0] & 0xe0) | (buf[1] & 0x1f);
+
+              /* strip type header, keep FU header, we'll reuse it to reconstruct
+               * the NAL header. */
+              buf += 1;
+              payload_len -= 1;
+              nalu_size = payload_len;
+              outsize = nalu_size + sizeof (sync_bytes);
+
+              memcpy (m_buf + sizeof (sync_bytes), buf, nalu_size);
+              m_buf[sizeof (sync_bytes)] = nal_header;
+              m_size = outsize;
+//              seqid[wr] = q;
+
+            } else {
+              /* strip off FU indicator and FU header bytes */
+              buf += 2;
+              payload_len -= 2;
+
+              memcpy(m_buf + m_size, buf, payload_len);
+              m_size += payload_len;
+
+            }
+
+            if (E)
+            {
+
+                if (m_streamtype)
+                {
+                    memcpy (m_buf, sync_bytes, sizeof (sync_bytes));
+                } else {
+                    outsize = m_size - 4;
+                    m_buf[0] = (outsize >> 24);
+                    m_buf[1] = (outsize >> 16);
+                    m_buf[2] = (outsize >> 8);
+                    m_buf[3] = (outsize);
+                }
+                if(m_size > FRAME_MAX_NUM * H264_DATA_SIZE)
+                {
+                    printf("frame data over %d!\n", m_size);
+                    zprintf1("frame data over %d!\n", m_size);
+                    m_runok = false;
+                    break;
+                }
+//                printf("write h264 iframe!\n");
+                h264buf->write_h264data_buf(m_buf, m_size, q);
+            }
+            break;
+        }
+
+        default:
+        {
+
+
+            /* 1-23   NAL unit  Single NAL unit packet per H.264   5.6 */
+            /* the entire payload is the output buffer */
+
+           if(m_runok ==false)
+               break;
+            nalu_size = size;
+            outsize = nalu_size + sizeof (sync_bytes);
+
+            {
+
+                if (m_streamtype) {
+                  memcpy (m_buf, sync_bytes, sizeof (sync_bytes));
+                } else {
+                    m_buf[0] = m_buf[1] = 0;
+                    m_buf[2] = nalu_size >> 8;
+                    m_buf[3] = nalu_size & 0xff;
+                }
+
+
+                memcpy (m_buf + sizeof (sync_bytes), buf, nalu_size);
+                m_size = outsize;
+                if(outsize > FRAME_MAX_NUM * H264_DATA_SIZE)
+                {
+                    printf("frame over!\n");
+                    zprintf1("frame over!\n");
+
+                }
+
+            }
+            if(nal_unit_type == 7)
+            {
+                if(m_spsmark == 0)
+                {
+                    set_sps_info(m_buf, m_size);
+                    m_spsmark =1;
+                }
+
+            }
+            else if(nal_unit_type == 8)
+            {
+                if(m_ppsmark == 0)
+                {
+                    set_pps_info(m_buf, m_size);
+                    m_ppsmark = 1;
+                }
+
+            }
+//            printf("write h264 frame %d!\n", nal_unit_type);
+            h264buf->write_h264data_buf(m_buf, m_size, q);
+            break;
+          }
+    }
+
+    return 0;
+}
 
 int H264Depay::data_porcess(uint8_t * buf, int size)
 {
@@ -437,7 +682,8 @@ int H264Depay::data_porcess(uint8_t * buf, int size)
     }
 //   zprintf1("receive end seq %d next %d!\n", seq, next_seq);
 
-    h264buf->write_h264buf(buf+H264_HEAD_MIN_LEN, size-H264_HEAD_MIN_LEN, seq, drop);
+//    h264buf->write_h264buf(buf+H264_HEAD_MIN_LEN, size-H264_HEAD_MIN_LEN, seq, drop);
+    data_parse(buf+H264_HEAD_MIN_LEN, size-H264_HEAD_MIN_LEN, seq, drop);
     return 0;
 }
 
@@ -475,6 +721,7 @@ void H264Depay::run()
     int size;
     uint8_t * buf;
     uint8_t nal_unit_type;
+    uint8_t datatype;
     int first = 0;
 
     vpudec->vpu_open();
@@ -482,7 +729,9 @@ void H264Depay::run()
     while(1)
     {
         sem_wait(&h264buf->mgsem);
-        size = h264buf->get_h264buf(&buf);
+        size = h264buf->get_h264buf(&buf, &datatype);
+
+//        printf("buf data type %d vpu type %d!\n", datatype, vpudec->m_frametype);
 
         if(size > 0 && buf != NULL)
         {
@@ -492,7 +741,8 @@ void H264Depay::run()
                 if(first == 0 && nal_unit_type == 8)
                 {
                     first = 1;
-                    vpudec->set_vpu_codec_data(h264buf->info.data, h264buf->info.nSize);
+//                    vpudec->set_vpu_codec_data(h264buf->info.data, h264buf->info.nSize);
+                    vpudec->set_vpu_codec_data(m_info.data, m_info.nSize);
                 }
             }
             else

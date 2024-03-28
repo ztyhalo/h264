@@ -24,6 +24,12 @@ void RTP::set_protocol(void * pro)
     next_p = pro;
 }
 
+int  RTP::rtp_run_stop(void)
+{
+    running = 0;
+    return 0;
+}
+
 void RTP::run()
 {
 
@@ -31,7 +37,7 @@ void RTP::run()
     int ret;
     int overnum = 0;
 //    this->set_timeover(5);
-    while (1)
+    while (running)
     {
 
         if(wait_fd_change(1000) != -1)
@@ -41,6 +47,7 @@ void RTP::run()
            if(state != 1)
            {
                 state = 1; //已经有数据
+//                printf("zty send rtp have data!\n");
                 if(this->netstatecb != NULL)
                 {
                     this->netstatecb(this, state);
@@ -50,8 +57,12 @@ void RTP::run()
 
            while((ret = read(socket_fd, buf,sizeof(buf))) >0)
            {
+//               printf("rtp have data!\n");
                if(this->rxcallback != NULL)
+               {
+//                   printf("rtp have data process!\n");
                     this->rxcallback(this, buf, ret);
+               }
            }
 
         }

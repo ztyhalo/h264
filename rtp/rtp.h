@@ -38,6 +38,7 @@ public:
     int (*netstatecb)(RTP * pro, int s);
     int rtp_init(string sess, int port);
     void set_protocol(void * pro);
+    int rtp_run_stop(void);
     void run();
 
 };
