@@ -42,10 +42,10 @@ int UDP_CLASS::udp_read_init(void)
 
     if (getsockopt(socket_fd, SOL_SOCKET, SO_RCVBUF, &nRecvBuf, &optlen) < 0)
     {
-        printf("zty read rev buf size error!\n");
+        zprintf1("zty read rev buf size error!\n");
     }
     else
-        printf("zty read rev buf size %d!\n", nRecvBuf);
+        zprintf4("zty read rev buf size %d!\n", nRecvBuf);
 
 
 

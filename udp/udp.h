@@ -10,6 +10,7 @@
 #include <unistd.h>
 //#include <QObject>
 #include "socket/socket.h"
+#include "zprint/zprint.h"
 
 
 class UDP_CLASS:public SOCKET_ADDR_CLASS,public SOCKET_FD_CLASS
@@ -30,7 +31,7 @@ public:
     }
     ~UDP_CLASS()
     {
-         cout << "UDP_CLASS delete!" << endl;;
+         zprintf4("UDP_CLASS delete!\n");
     }
 
     void udp_class_init(uint16_t port)

@@ -2,8 +2,8 @@
 #include "date/com_date.h"
 
 const char * g_file[2][3] = {
-                            {"/opt/001.jpg","/opt/002.jpg","/opt/003.jpg"},
-                            {"/opt/001.jpg","/opt/001.jpg","/opt/003.jpg"},
+                                {"/opt/001.jpg","/opt/002.jpg","/opt/003.jpg"},
+                                {"/opt/001.jpg","/opt/001.jpg","/opt/003.jpg"},
                             };
 
 
@@ -73,9 +73,9 @@ RTSP::message_to_string (GstRTSPMessage * message)
       /* create request string, add CSeq */
       string method(gst_rtsp_method_as_text(message->type_data.request.method));
       string uri(message->type_data.request.uri);
-//      string cseq("CSeq: ");
+
       string cseqstring =  "CSeq: " + std::to_string(cseq) +"\r\n";
-//        string cseqstring =  "CSeq: "  + "\r\n";
+
       if(message->type_data.request.method == GST_RTSP_SETUP)
           uri += "/track1";
       str = method +" "+ uri +" RTSP/1.0\r\n" + cseqstring;
@@ -90,7 +90,7 @@ RTSP::message_to_string (GstRTSPMessage * message)
           string setupstr = "Transport: RTP/AVP;unicast;client_port=" + std::to_string(initport) + "-"
                   + std::to_string(initport+1) +"\r\n";
           str += setupstr;
-          cout << "set " <<str << endl;
+          zprintf4("set %s!\n", str.c_str());
       }
       else if(message->type_data.request.method == GST_RTSP_PLAY)
       {
@@ -99,14 +99,14 @@ RTSP::message_to_string (GstRTSPMessage * message)
           str += session;
           str += "\r\n";
 
-          cout << "zty play " << str <<endl;
+          zprintf4("play %s!\n", str.c_str());
       }
       else if(message->type_data.request.method == GST_RTSP_TEARDOWN)
       {
           str += session;
           str += "\r\n";
 
-          cout << "zty trardown " << str <<endl;
+          zprintf4("trardown %s!\n", str.c_str());
       }
 
       break;
@@ -149,8 +149,6 @@ RTSP::message_to_string (GstRTSPMessage * message)
       break;
     }
     default:
-//      g_string_free (str, TRUE);
-//      g_return_val_if_reached (NULL);
       break;
   }
 
@@ -162,6 +160,7 @@ RTSP::message_to_string (GstRTSPMessage * message)
     str += dateStr;
     str += "\r\n\r\n";
   }
+
   return str;
 }
 
@@ -171,44 +170,46 @@ gst_rtsp_message_init_request (GstRTSPMessage * msg, GstRTSPMethod method,
     const char * uri)
 {
 
-  msg->type = GST_RTSP_MESSAGE_REQUEST;
-  msg->type_data.request.method = method;
-  msg->type_data.request.uri = (char *) (uri);
-  msg->type_data.request.version = GST_RTSP_VERSION_1_0;
-//  msg->hdr_fields = g_array_new (FALSE, FALSE, sizeof (RTSPKeyValue));
+    msg->type = GST_RTSP_MESSAGE_REQUEST;
+    msg->type_data.request.method = method;
+    msg->type_data.request.uri = (char *) (uri);
+    msg->type_data.request.version = GST_RTSP_VERSION_1_0;
 
-  return GST_RTSP_OK;
+    return GST_RTSP_OK;
 }
 RTSP::~RTSP()
 {
-    cout << "rtsp delete!" << endl;
+    zprintf3("rtsp delete!\n");
 
     stop();
+
 
     if(udprtp != NULL)
     {
         delete udprtp;
         udprtp = NULL;
     }
-    cout << "delete udprtp ok!" <<endl;
+    zprintf4("delete udprtp ok!\n");
 
-    if(h264depay != NULL)
-    {
-        delete h264depay;
-        h264depay = NULL;
-    }
-    cout << "delete h264ok" << endl;
-
-    cout << "rtsp delete end!" << endl;
     if(link != NULL)
     {
         delete link;
         link = NULL;
     }
 
-    sem_destroy(&netlinksem);
+    if(h264depay != NULL)
+    {
+        delete h264depay;
+        h264depay = NULL;
+    }
+
     sem_destroy(&m_imagesem);
     sem_destroy(&m_restartsem);
+    if(m_fp != NULL)
+    {
+        fclose(m_fp);
+        m_fp = NULL;
+    }
 }
 
 void RTSP::setup_message_parse (char * buf, size_t n)
@@ -219,19 +220,16 @@ void RTSP::setup_message_parse (char * buf, size_t n)
     size_t pos = 0;
     int posend = 0;
 
-    cout << "zty " << seeionstr <<endl;
     pos = seeionstr.find("Session:");
 
 
     if(pos != string::npos) //find
     {
-        cout << "zty pos " << pos << endl;
+
         posend = seeionstr.find("\r\n", pos);;
 
-        cout << "zty posend " << posend  << endl;
-
         session = seeionstr.substr(pos, posend - pos);
-        cout << "zty val" << session  << " endl" << endl;
+        zprintf2("rtsp session: %s!\n", session.c_str());
     }
 
 }
@@ -249,25 +247,21 @@ int rtp_netlink_callback(RTP * pro, int s)
     {
         if(s == 1)  //rtp有数据
         {
-            cout << "rtp have data!" <<endl;
             zprintf1("rtp up callback!\n");
-//            midpro->change_rtsp_state(RTSP_OK);
-            midpro->h264depay->vpudec->vpu_change_mode(VPU_V_AVC);
+            if(midpro->h264depay->vpudec)
+                midpro->h264depay->vpudec->vpu_change_mode(VPU_V_AVC);
             midpro->state = RTSP_OK;
         }
         else  //rtp无数据
         {
-            cout << "rtp no data!" <<endl;
             zprintf1("rtp down callback!\n");
             if(midpro->udprtp != NULL)
             {
                 midpro->udprtp->rtp_run_stop();
             }
-            cout << "udprtp stop ok!" <<endl;
+
             if(midpro->h264depay != NULL)
             {
-//                midpro->h264depay->vpudec->vpu_close();
-//                midpro->h264depay->vpudec->vpu_open(VPU_V_MJPG);
                 midpro->h264depay->vpudec->vpu_change_mode(VPU_V_MJPG);
                 midpro->change_rtsp_state(RTSP_NO_DATA);
                 sem_post(&midpro->m_restartsem);
@@ -297,8 +291,6 @@ int eth_netlink_callback(NetlinkStatus * pro, int s)
             {
                 midpro->rtsp_stop();
             }
-//            midpro->h264depay->vpudec->vpu_close();
-//            midpro->h264depay->vpudec->vpu_open(VPU_V_MJPG);
             if(midpro->h264depay != NULL)
                 midpro->h264depay->vpudec->vpu_change_mode(VPU_V_MJPG);
             midpro->change_rtsp_state(RTSP_NO_LINK);
@@ -314,7 +306,7 @@ void RTSP::link_state_image_process(void)
 {
 
     //每次读到的字符串长度
-    FILE * fp = NULL;
+//    FILE * fp = NULL;
 
     int    retSize = 0;
     int    fileSize = 0;
@@ -335,30 +327,32 @@ void RTSP::link_state_image_process(void)
         else
             continue;
 
-        cout << "start display err image!" <<endl;
-        fp = fopen(g_file[id][fileSize], "rb");
+        zprintf4("start display err image!\n");
 
-        if(NULL == fp)
+        m_fp = fopen(g_file[id][fileSize], "rb");
+
+        if(NULL == m_fp)
         {
             fileSize++;
             continue;
         }
+
         fileSize++;
         fileSize %= 3;
+
         while(1)
         {
-//            h264depay->vpudec->vpu_change_mode(VPU_V_MJPG);
             h264depay->h264buf->lock();
             h264depay->h264buf->get_write_h264buf(&buf);
-            fseek(fp, 0, SEEK_SET);
+            fseek(m_fp, 0, SEEK_SET);
 
 
-            retSize = fread(buf, 1, FRAME_MAX_NUM * H264_DATA_SIZE, fp);
+            retSize = fread(buf, 1, FRAME_MAX_NUM * H264_DATA_SIZE, m_fp);
 
             if(retSize <= FRAME_MAX_NUM * H264_DATA_SIZE)
-                printf("ztytestread %d ok!\n", retSize);
+                zprintf4("zty test read %d ok!\n", retSize);
             else
-                printf("ztytestread %d error!\n", retSize);
+                zprintf1("zty testread %d error!\n", retSize);
 
 
 
@@ -368,9 +362,7 @@ void RTSP::link_state_image_process(void)
             sleep(1);
             if(state == RTSP_OK)
             {
-                cout << "state ok!" <<endl;
-//                h264depay->vpudec->vpu_close();
-//                h264depay->vpudec->vpu_open();
+                zprintf1("state ok!\n");
                 break;
             }
             time++;
@@ -380,8 +372,8 @@ void RTSP::link_state_image_process(void)
                 break;
             }
         }
-        fclose(fp);
-
+        fclose(m_fp);
+        m_fp = NULL;
     }
 
     return ;
@@ -395,11 +387,9 @@ void RTSP::run()
 
 void RTSP::change_rtsp_state(int st)
 {
-    cout << "state change st " <<st << " state " << state <<endl;
     if(st != state)
     {
         state= st;
-        cout << "post rtsp state " << state << endl;
         sem_post(&m_imagesem);
     }
 }
@@ -495,7 +485,7 @@ int RTSP::rtsp_init(string ip)
 
     msg_str = message_to_string(&msg);
 
-    cout << msg_str << endl;
+    zprintf3("optinos %s!\n", msg_str.c_str());
 
     ret = tcp_write((void *)msg_str.c_str(), msg_str.length());
     err--;
@@ -507,10 +497,10 @@ int RTSP::rtsp_init(string ip)
     ret = tcp_recv( buf, sizeof(buf));
     err--;
     if (ret < 0) {
-        printf("%s: errno:%d\n", __FUNCTION__, errno);
+        zprintf1("%s: errno:%d\n", __FUNCTION__, errno);
         goto RTSP_ERROR;
     } else if (0 == ret) {
-        printf("server fd[%d] disconnect\n", socket_fd);
+        zprintf1("server fd[%d] disconnect\n", socket_fd);
         goto RTSP_ERROR;
     }
      //parse options
@@ -529,41 +519,32 @@ int RTSP::rtsp_init(string ip)
     err--;
     if (ret < 0)
     {
-        printf("%s: errno:%d\n", __FUNCTION__, errno);
+        zprintf1("%s: errno:%d\n", __FUNCTION__, errno);
         goto RTSP_ERROR;
     } else if (0 == ret) {
-        printf("server fd[%d] disconnect\n", socket_fd);
+        zprintf1("server fd[%d] disconnect\n", socket_fd);
         goto RTSP_ERROR;
     }
 
-   printf("zty sdp len %d!\n", ret);
+   zprintf3("zty sdp len %d!\n", ret);
 
    ret = tcp_recv(buf, sizeof(buf));   //两次接收 由于tcp分包
    err--;
    if (ret > 0) {
 //       printf("recv data[%s] from server\n", buf);
    } else if (ret < 0) {
-       printf("%s: errno:%d\n", __FUNCTION__, errno);
+       zprintf1("%s: errno:%d\n", __FUNCTION__, errno);
    } else if (0 == ret) {
-       printf("server fd[%d] disconnect\n", socket_fd);
+       zprintf1("server fd[%d] disconnect\n", socket_fd);
    }
-   printf("zty sdp len %d!\n", ret);
+   zprintf3("zty sdp len %d!\n", ret);
 
-  //parse discribe
-//    if(h264depay == NULL)
-//    {
-//        h264depay = new H264Depay;
-//        h264depay->rtp_h264_init();
-//        h264depay->start();
-//    }
 
    udprtp = new RTP;
 
    udprtp->set_protocol(h264depay);
-//   h264depay->rtp_h264_init(udprtp);
    udprtp->rxcallback = h264_pro_rxdata_callback;
    udprtp->rtp_init(session, initport);
-
 
    udprtp->net_father = this;
    udprtp->netstatecb = rtp_netlink_callback;
@@ -585,11 +566,11 @@ int RTSP::rtsp_init(string ip)
         setup_message_parse(buf, ret);
 
    } else if (ret < 0) {
-       printf("%s: errno:%d\n", __FUNCTION__, errno);
+       zprintf1("%s: errno:%d\n", __FUNCTION__, errno);
        goto RTSP_ERROR;
 
    } else if (0 == ret) {
-       printf("server fd[%d] disconnect\n", socket_fd);
+       zprintf1("server fd[%d] disconnect\n", socket_fd);
        goto RTSP_ERROR;
    }
 
@@ -606,14 +587,14 @@ int RTSP::rtsp_init(string ip)
    ret = tcp_recv(buf, sizeof(buf));
    err--;
    if (ret > 0) {
-       printf("h264 start play!\n");
+       zprintf1("h264 start play!\n");
 
    } else if (ret < 0) {
-       printf("%s: errno:%d\n", __FUNCTION__, errno);
+       zprintf1("%s: errno:%d\n", __FUNCTION__, errno);
        goto RTSP_ERROR;
 
    } else if (0 == ret) {
-       printf("server fd[%d] disconnect\n", socket_fd);
+       zprintf1("server fd[%d] disconnect\n", socket_fd);
        goto RTSP_ERROR;
    }
    m_isplay = 1;
@@ -644,21 +625,19 @@ int RTSP::rtsp_run(void)
         {
             sleep(1);
             rtsp_stop();
-            cout << "init rstp!" << endl;
+
+            zprintf3("init rstp!\n");
             if(rtsp_init(ipaddr) == 0)
                 break;
         }
         sem_wait(&m_restartsem);
-//        rtsp_stop();
-//        cout << "restart rstp!" << endl;
-//        rtsp_restart(ipaddr);
     }
     return 0;
 }
 
 int  RTSP::rtsp_stop(void)
 {
-    cout << "rtsp stop!" << endl;
+    zprintf2("rtsp stop!\n");
 
     close_fd();
 
@@ -667,18 +646,14 @@ int  RTSP::rtsp_stop(void)
         delete udprtp;
         udprtp = NULL;
     }
-    cout << "delete udprtp ok!" <<endl;
-
     return 0;
 }
 
 
 int RTSP::rtsp_restart(string ip)
 {
-    sem_init(&netlinksem, 0, 0);
 
     this->h264depay->vpudec->vpu_close();
     this->h264depay->vpudec->vpu_open();
     return rtsp_init(ip);
-//    return 0;
 }

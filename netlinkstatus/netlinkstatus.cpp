@@ -52,9 +52,9 @@ NetlinkStatus::NetlinkStatus(string ethname)
 
 NetlinkStatus::~NetlinkStatus()
 {
-    cout << "delete netlinkstatus!" << endl;
-    zprintf4("delete netlinkstatus!\n");
+    zprintf3("delete netlinkstatus!\n");
     stop();
+
     if(nl_sock >0)
     {
         close(nl_sock);

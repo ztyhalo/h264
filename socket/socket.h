@@ -10,6 +10,7 @@
 #include <unistd.h>
 //#include <QObject>
 #include <iostream>
+#include "zprint/zprint.h"
 
 using namespace std;
 
@@ -33,7 +34,7 @@ public:
     }
     ~SOCKET_ADDR_CLASS()
     {
-        cout << "socket add class delete!" << endl;;
+        zprintf3("socket add class delete!\n");
     }
 
     void socket_add_init(void)
@@ -68,13 +69,12 @@ public:
      }
      ~SOCKET_FD_CLASS()
      {
-         cout << "SOCKET_FD_CLASS delete!" << socket_fd << endl;
+         zprintf3("SOCKET_FD_CLASS %d delete!\n", socket_fd);
          if(socket_fd > 0)
          {
              close(socket_fd);
              socket_fd = 0;
          }
-         cout << "socket fd closeis ok!" <<endl;
      }
      int creat_socket_fd(int type)
      {

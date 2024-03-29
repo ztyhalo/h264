@@ -223,7 +223,7 @@ public:
      NCbk_Poll(int max):z_poll(max){
      }
      ~NCbk_Poll(){
-         cout << "delete NCbk_Poll!" << endl;
+         zprintf3("delete NCbk_Poll!\n");
      }
 };
 

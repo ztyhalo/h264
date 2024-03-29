@@ -230,7 +230,7 @@ int VpuDec::vpu_mem_init(void)
         {
             memset(&mem_desc, 0, sizeof(VpuMemDesc));
             mem_desc.nSize = PAGE_ALIGN(size);
-            printf("zty internal alloc size %d!\n", mem_desc.nSize);
+            zprintf4("zty internal alloc size %d!\n", mem_desc.nSize);
             ret = VPU_DecGetMem(&mem_desc);
             if (ret == VPU_DEC_RET_SUCCESS)
             {
@@ -381,33 +381,33 @@ int VpuDec::vpu_open(VpuCodStd type)
     ret = VPU_DecOpen(&(handle), &open_param, &(vpu_internal_mem.mem_info));
     if (ret != VPU_DEC_RET_SUCCESS)
     {
-      zprintf1("opening new VPU handle failed: %s!\n",  gst_vpu_dec_object_strerror(ret));
-      return -1;
+        zprintf1("opening new VPU handle failed: %s!\n",  gst_vpu_dec_object_strerror(ret));
+        return -1;
     }
+
     ret=VPU_DecGetCapability(handle, VPU_DEC_CAP_FRAMESIZE, &capability);
     if((ret==VPU_DEC_RET_SUCCESS)&&capability)
     {
-//       vpu_dec_object->use_new_tsm = TRUE;
-        printf("vpu get cap ok!\n");
+        zprintf1("vpu get cap ok!\n");
     }
 
     config_param = VPU_DEC_SKIPNONE;
-      ret = VPU_DecConfig(handle, VPU_DEC_CONF_SKIPMODE, &config_param);
-      if (ret != VPU_DEC_RET_SUCCESS)
-      {
-          zprintf1("could not configure skip mode: %s!\n", gst_vpu_dec_object_strerror(ret));
-          printf("zty could not configure skip mode!\n");
-          return -2;
-      }
+    ret = VPU_DecConfig(handle, VPU_DEC_CONF_SKIPMODE, &config_param);
+    if (ret != VPU_DEC_RET_SUCCESS)
+    {
+        zprintf1("could not configure skip mode: %s!\n", gst_vpu_dec_object_strerror(ret));
+        printf("zty could not configure skip mode!\n");
+        return -2;
+    }
 
-      config_param = 0;
-      ret = VPU_DecConfig(handle, VPU_DEC_CONF_BUFDELAY, &config_param);
-      if (ret != VPU_DEC_RET_SUCCESS)
-      {
-          zprintf1("could not configure buffer delay: %s!\n", gst_vpu_dec_object_strerror(ret));
-          printf("zty could not config delay!\n");
-          return -3;
-      }
+    config_param = 0;
+    ret = VPU_DecConfig(handle, VPU_DEC_CONF_BUFDELAY, &config_param);
+    if (ret != VPU_DEC_RET_SUCCESS)
+    {
+        zprintf1("could not configure buffer delay: %s!\n", gst_vpu_dec_object_strerror(ret));
+        printf("zty could not config delay!\n");
+        return -3;
+    }
 
     state = STATE_OPENED;
 
@@ -674,7 +674,7 @@ int VpuDec::vpu_decode_process(uint8_t * data, int size)
             }
             else
             {
-                printf("vpu reconfig!\n");
+                zprintf3("vpu reconfig!\n");
             }
         }
 

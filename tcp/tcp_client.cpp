@@ -8,7 +8,7 @@ TCP_CLIENT::TCP_CLIENT()
 
 TCP_CLIENT::~TCP_CLIENT()
 {
-    cout << "TCP_CLIENT delete!" << endl;;
+    zprintf3("TCP_CLIENT delete!\n");
 }
 
 
@@ -18,7 +18,7 @@ int TCP_CLIENT::tcp_client_connect(void)
     ret = connect(socket_fd,(struct sockaddr *)&addr, sizeof(addr));
     if(ret < 0)
     {
-        printf("tcp connect failed, errno:%d, %s\n", errno, strerror(errno));
+        zprintf1("tcp connect failed, errno:%d, %s\n", errno, strerror(errno));
     }
     return ret;
 }

@@ -243,7 +243,8 @@ public:
         ethlink = 0;
         state = RTSP_OK;
         m_isplay = 0;
-        sem_init(&netlinksem, 0, 0);
+        m_fp = NULL;
+
         sem_init(&m_imagesem, 0, 0);
         sem_init(&m_restartsem, 0, 0);
     }
@@ -266,7 +267,7 @@ public:
     string ipaddr;
     int cseq ;
     int initport;
-    sem_t  netlinksem;
+
     sem_t  m_imagesem;
     sem_t  m_restartsem;
     string session;
@@ -276,6 +277,7 @@ public:
     int ethlink;
     int state;
     int m_isplay;
+    FILE * m_fp;
     void run();
 
 };

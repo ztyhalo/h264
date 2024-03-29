@@ -493,53 +493,54 @@ int V4L2::v4l2out_config_alpha(int alpha)
 
 int V4L2::imx_ipu_v4l2_config_colorkey (bool enable, uint32_t color_key)
 {
-  struct mxcfb_color_key colorKey;
-  char *device = (char*)g_device_maps[dev->device_map_id].bg_fb_name;
-  int fd;
-  struct fb_var_screeninfo fbVar;
+    struct mxcfb_color_key colorKey;
+    char *device = (char*)g_device_maps[dev->device_map_id].bg_fb_name;
+    int fd;
 
-  fd = open (device, O_RDWR, 0);
-  if (fd < 0)
-  {
-    zprintf1 ("Can't open %s.", device);
-    return -1;
-  }
+    struct fb_var_screeninfo fbVar;
 
-  if (ioctl(fd, FBIOGET_VSCREENINFO, &fbVar) < 0)
-  {
-    zprintf1("get vscreen info failed.");
-  }
-  else
-  {
-    if (fbVar.bits_per_pixel == 16)
+    fd = open (device, O_RDWR, 0);
+    if (fd < 0)
     {
-      colorKey.color_key = RGB565TOCOLORKEY(RGB888TORGB565(color_key));
-      zprintf3("%08X:%08X", colorKey.color_key, color_key);
+        zprintf1 ("Can't open %s!\n", device);
+        return -1;
     }
-    else if (fbVar.bits_per_pixel == 24 || fbVar.bits_per_pixel == 32)
+
+    if (ioctl(fd, FBIOGET_VSCREENINFO, &fbVar) < 0)
     {
-      colorKey.color_key = color_key;
+        zprintf1("get vscreen info failed.\n");
     }
-  }
+    else
+    {
+        if (fbVar.bits_per_pixel == 16)
+        {
+            colorKey.color_key = RGB565TOCOLORKEY(RGB888TORGB565(color_key));
+            zprintf3("%08X:%08X!\n", colorKey.color_key, color_key);
+        }
+        else if (fbVar.bits_per_pixel == 24 || fbVar.bits_per_pixel == 32)
+        {
+            colorKey.color_key = color_key;
+        }
+    }
 
-  if (enable)
-  {
-    colorKey.enable = 1;
-    zprintf3("set colorKey to (%x) for display (%s)", colorKey.color_key, device);
-  }
-  else
-  {
-    colorKey.enable = 0;
-    zprintf3("disable colorKey for display (%s)", device);
-  }
+    if (enable)
+    {
+        colorKey.enable = 1;
+        zprintf3("set colorKey to (%x) for display (%s)!\n", colorKey.color_key, device);
+    }
+    else
+    {
+        colorKey.enable = 0;
+        zprintf3("disable colorKey for display (%s)!\n", device);
+    }
 
-  if (ioctl (fd, MXCFB_SET_CLR_KEY, &colorKey) < 0)
-  {
-    zprintf1 ("Set %s color key failed.", device);
-  }
+    if (ioctl (fd, MXCFB_SET_CLR_KEY, &colorKey) < 0)
+    {
+        zprintf1 ("Set %s color key failed!\n", device);
+    }
 
-  close (fd);
-  return 0;
+    close (fd);
+    return 0;
 }
 
 int V4L2::imx_v4l2out_config_input (uint32_t fmt, IMXV4l2Rect *crop)

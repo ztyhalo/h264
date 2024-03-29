@@ -27,6 +27,7 @@ linux-gnueabi-oe-g++{
     LIBS += -lpthread -lfslvpuwrap -lg2d
 }
 SOURCES += \
+        bufmodel/ZBufModel.cpp \
         date/com_date.cpp \
         h264depay/h264depay.cpp \
         main.cpp \
@@ -44,6 +45,7 @@ SOURCES += \
         zprint/zprint.cpp
 
 HEADERS += \
+    bufmodel/ZBufModel.h \
     date/com_date.h \
     epoll/e_poll.h \
     h264depay/h264depay.h \

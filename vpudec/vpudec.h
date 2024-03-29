@@ -20,6 +20,19 @@ using namespace std;
 #define VPU_MEM_ALIGN			0x8
 #define MemNotAlign(mem,align)	((((unsigned int)mem)%(align))!=0)
 
+
+#define VPU_MAX_BUF 120
+#define FRAME_MAX_NUM  260  //260
+#define VPU_DATA_SIZE 1248
+
+class VPUDataType
+{
+public:
+    int m_datatype;
+    int m_seq;
+};
+
+
 //typedef struct {
 //  uint8_t *vaddr;
 //  uint8_t *paddr;
@@ -38,9 +51,7 @@ typedef enum {
 } VpuDecState;
 
 typedef struct {
-  VpuMemInfo mem_info;
-//    list internal_virt_mem;
-//    list internal_phy_mem;
+    VpuMemInfo mem_info;
 } VpuInternalMem;
 
 #define G2D_BLOCK_BUF 12

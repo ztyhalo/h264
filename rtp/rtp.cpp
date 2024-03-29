@@ -2,7 +2,7 @@
 
 RTP::~RTP()
 {
-    cout << "delete rtp " <<endl;
+    zprintf4("delete rtp");
     stop();
     rxcallback = NULL;
     netstatecb = NULL;
@@ -57,10 +57,8 @@ void RTP::run()
 
            while((ret = read(socket_fd, buf,sizeof(buf))) >0)
            {
-//               printf("rtp have data!\n");
                if(this->rxcallback != NULL)
                {
-//                   printf("rtp have data process!\n");
                     this->rxcallback(this, buf, ret);
                }
            }
@@ -71,7 +69,7 @@ void RTP::run()
             overnum++;
             if(overnum >3)
             {
-                printf("wati over!\n");
+                zprintf1("wati over!\n");
                 overnum = 0;
                 if(state != 0)
                 {

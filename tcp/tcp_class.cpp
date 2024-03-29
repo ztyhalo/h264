@@ -6,7 +6,7 @@ TCP_CLASS::TCP_CLASS()
 }
 TCP_CLASS::~TCP_CLASS()
 {
-    cout << "tcp class delete!" << endl;;
+    zprintf3("tcp class delete!\n");
 }
 
 int TCP_CLASS::tcp_write(void * buf, size_t n)

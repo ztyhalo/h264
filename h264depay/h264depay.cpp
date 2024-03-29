@@ -123,7 +123,6 @@ static int firstdrop = 0;
 
 int H264Buf::write_h264buf(uint8_t * buf, int size, int q, int drop)
 {
-//    uint8_t nal_ref_idc;
     uint8_t nal_unit_type;
     uint32_t nalu_size;
     uint32_t outsize;
@@ -136,7 +135,6 @@ int H264Buf::write_h264buf(uint8_t * buf, int size, int q, int drop)
      *
      * F must be 0.
      */
-//    nal_ref_idc = (buf[0] & 0x60) >> 5;
 
     if(sz >= H264_MAX_FRAME)
     {
@@ -438,7 +436,6 @@ H264Depay::H264Depay()
 
 H264Depay::~H264Depay()
 {
-    cout << "delete h264 depay!" <<endl;
     zprintf3("delete h264 depay!");
     stop();
 
