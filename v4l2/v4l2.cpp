@@ -18,8 +18,8 @@ static IMXV4l2DeviceMap g_device_maps[] = {
 
 void print_crop_info(struct v4l2_crop *crop)
 {
-    printf("zty printf crop type %d!\n", crop->type);
-    printf("zty crop info (%d, %d) -> (%d, %d).\n", crop->c.left, crop->c.top, crop->c.width, crop->c.height);
+    zprintf4("zty printf crop type %d!\n", crop->type);
+    zprintf4("zty crop info (%d, %d) -> (%d, %d).\n", crop->c.left, crop->c.top, crop->c.width, crop->c.height);
 }
 static uint32_t string_to_fmt (const char *value)
 {
@@ -83,14 +83,14 @@ void DisplayDev::get_display_resolution (char * device)
 
      if (ioctl (fd, FBIOGET_VSCREENINFO, &fb_var) < 0)
      {
-       printf ("ERROR: Can't get display resolution, use default (%dx%d).\n", DEFAULTW, DEFAULTH);
+       zprintf1("ERROR: Can't get display resolution, use default (%dx%d).\n", DEFAULTW, DEFAULTH);
        close (fd);
        return;
      }
 
      width = fb_var.xres;
      height = fb_var.yres;
-     printf ("display(%s) resolution is (%dx%d).\n", g_device_maps[device_map_id].bg_fb_name, fb_var.xres, fb_var.yres);
+     zprintf3 ("display(%s) resolution is (%dx%d).\n", g_device_maps[device_map_id].bg_fb_name, fb_var.xres, fb_var.yres);
 
      close (fd);
 
@@ -167,7 +167,7 @@ int G2dDevice::g2d_device_update_surface_info (SurfaceInfo *info, void * surface
       else if(info->fmt == GST_VIDEO_FORMAT_RGBx)
         hsurface->src.format = G2D_RGBX8888;
       else {
-        printf ("source format (%x) is not supported.!\n", info->fmt);
+        zprintf1 ("source format (%x) is not supported.!\n", info->fmt);
         return -1;
     }
 
@@ -179,7 +179,7 @@ int G2dDevice::g2d_device_update_surface_info (SurfaceInfo *info, void * surface
     hsurface->src.right = info->src.right;
     hsurface->src.bottom = info->src.bottom;
 
-    printf ("zty source, format (%x), res (%d,%d), crop (%d,%d) --> (%d,%d)!\n",
+    zprintf3 ("zty source, format (%x), res (%d,%d), crop (%d,%d) --> (%d,%d)!\n",
     hsurface->src.format, hsurface->src.width, hsurface->src.height,
     hsurface->src.left, hsurface->src.top, hsurface->src.right, hsurface->src.bottom);
 
@@ -210,7 +210,7 @@ int G2dDevice::g2d_device_update_surface_info (SurfaceInfo *info, void * surface
       break;
     }
 
-    printf ("zty dest, format (%x), res (%d,%d), crop (%d,%d) --> (%d,%d)!\n",
+    zprintf4 ("zty dest, format (%x), res (%d,%d), crop (%d,%d) --> (%d,%d)!\n",
     hsurface->dst.format, hsurface->dst.width, hsurface->dst.height,
     hsurface->dst.left, hsurface->dst.top, hsurface->dst.right, hsurface->dst.bottom);
     return 0;
@@ -226,10 +226,10 @@ int G2dDevice::g2d_device_update_surface_info (SurfaceInfo *info)
 G2DSurface * G2dDevice::g2d_device_create_surface (SurfaceInfo *info)
 {
     G2DSurface *surface;
-    printf("zty g2d_device_create_surface!\n");
+    zprintf3("zty g2d_device_create_surface!\n");
     surface = (G2DSurface *)malloc (sizeof(G2DSurface));
     if (!surface) {
-      printf ("failed allocate G2DSurface.!\n");
+      zprintf1 ("failed allocate G2DSurface.!\n");
       return NULL;
     }
 
@@ -251,7 +251,7 @@ int G2dDevice::g2d_device_blit_surface(SurfaceBuffer *buffer, SurfaceBuffer *des
   void *g2d_handle = NULL;
 
   if(g2d_open(&g2d_handle) == -1 || g2d_handle == NULL) {
-    printf ("Failed to open g2d device.!\n");
+    zprintf1 ("Failed to open g2d device.!\n");
     return -1;
   }
 
@@ -355,7 +355,7 @@ int V4L2::v4l2_enum_fmt(void)
     while(ioctl(v4l2_fd, VIDIOC_ENUM_FMT, &fmt) == 0)
     {
         fmt.index++;
-        printf("{ pixelformat = ''%c%c%c%c'', description = ''%s'' }\n", fmt.pixelformat & 0xFF,
+        zprintf3("{ pixelformat = ''%c%c%c%c'', description = ''%s'' }\n", fmt.pixelformat & 0xFF,
             (fmt.pixelformat >> 8) & 0xFF, (fmt.pixelformat >> 16) & 0xFF, (fmt.pixelformat >> 24) & 0xFF,
             fmt.description);
     }
@@ -381,7 +381,7 @@ int V4L2::v4l2out_config_output(struct v4l2_crop * crop)
 
     if (ioctl(v4l2_fd, VIDIOC_S_CROP, crop) < 0)
     {
-      printf ("Set crop failed.");
+      zprintf1 ("Set crop failed.");
       return -1;
     }
 
@@ -407,20 +407,20 @@ int V4L2::v4l2_open_display_dev(int ty)
 
    if(v4l2_fd < 0)
    {
-       printf("can not open %s.\n", dev->name.c_str());
+       zprintf1("can not open %s.\n", dev->name.c_str());
        return -1;
    }
 
    if (ioctl(v4l2_fd, VIDIOC_QUERYCAP, &cap) < 0)
    {
-     printf("VIDIOC_QUERYCAP error.");
+     zprintf1("VIDIOC_QUERYCAP error.");
      close (v4l2_fd);
      return -2;
    }
 
    if (!(cap.capabilities & ty))
    {
-     printf("device can't capture.");
+     zprintf1("device can't capture.");
      close (v4l2_fd);
      return -2;
    }
@@ -435,7 +435,7 @@ int V4L2::v4l2_open_display_dev(int ty)
        ret = v4l2out_config_output(&crop);
        if(ret != 0)
        {
-           printf("v4l2out_config_output error!\n");
+           zprintf1("v4l2out_config_output error!\n");
            return ret;
        }
    }
@@ -451,12 +451,12 @@ int V4L2::imx_v4l2_reset_device(void)
         {
             if(ioctl(v4l2_fd, VIDIOC_STREAMOFF, &type) < 0)
             {
-                printf("stream off failed!\n");
+                zprintf1("stream off failed!\n");
                 return -1;
             }
             streamon = false;
         }
-        printf("v4l2 dev hold %d buffers when reset.!\n", queued_count);
+        zprintf4("v4l2 dev hold %d buffers when reset.!\n", queued_count);
     }
 
     return 0;
@@ -475,14 +475,14 @@ int V4L2::v4l2out_config_alpha(int alpha)
         return -1;
     }
 
-    printf("set alpha to (%d) for display (%s)", alpha, device);
+    zprintf4("set alpha to (%d) for display (%s)", alpha, device);
 
     galpha.alpha = alpha;
     galpha.enable = 1;
 
     if (ioctl(fd, MXCFB_SET_GBL_ALPHA, &galpha) < 0)
     {
-        printf ("Set %d global alpha failed.", alpha);
+        zprintf1 ("Set %d global alpha failed.", alpha);
     }
 
     close (fd);
@@ -501,20 +501,20 @@ int V4L2::imx_ipu_v4l2_config_colorkey (bool enable, uint32_t color_key)
   fd = open (device, O_RDWR, 0);
   if (fd < 0)
   {
-    printf ("Can't open %s.", device);
+    zprintf1 ("Can't open %s.", device);
     return -1;
   }
 
   if (ioctl(fd, FBIOGET_VSCREENINFO, &fbVar) < 0)
   {
-    printf("get vscreen info failed.");
+    zprintf1("get vscreen info failed.");
   }
   else
   {
     if (fbVar.bits_per_pixel == 16)
     {
       colorKey.color_key = RGB565TOCOLORKEY(RGB888TORGB565(color_key));
-      printf("%08X:%08X", colorKey.color_key, color_key);
+      zprintf3("%08X:%08X", colorKey.color_key, color_key);
     }
     else if (fbVar.bits_per_pixel == 24 || fbVar.bits_per_pixel == 32)
     {
@@ -525,17 +525,17 @@ int V4L2::imx_ipu_v4l2_config_colorkey (bool enable, uint32_t color_key)
   if (enable)
   {
     colorKey.enable = 1;
-    printf ("set colorKey to (%x) for display (%s)", colorKey.color_key, device);
+    zprintf3("set colorKey to (%x) for display (%s)", colorKey.color_key, device);
   }
   else
   {
     colorKey.enable = 0;
-    printf ("disable colorKey for display (%s)", device);
+    zprintf3("disable colorKey for display (%s)", device);
   }
 
   if (ioctl (fd, MXCFB_SET_CLR_KEY, &colorKey) < 0)
   {
-    printf ("Set %s color key failed.", device);
+    zprintf1 ("Set %s color key failed.", device);
   }
 
   close (fd);
@@ -551,7 +551,7 @@ int V4L2::imx_v4l2out_config_input (uint32_t fmt, IMXV4l2Rect *crop)
   if (imx_v4l2_reset_device() < 0)
     return -1;
 
-  printf("zty config in, fmt(%x), res(%dx%d), crop((%d,%d) -> (%d,%d))",
+  zprintf4("zty config in, fmt(%x), res(%dx%d), crop((%d,%d) -> (%d,%d))",
       fmt, dev->width, dev->height, crop->left, crop->top, crop->width, crop->height);
 
   //align to 8 pixel for IPU limitation
@@ -578,13 +578,13 @@ int V4L2::imx_v4l2out_config_input (uint32_t fmt, IMXV4l2Rect *crop)
 
   if (ioctl(v4l2_fd, VIDIOC_S_FMT, &v4l2fmt) < 0)
   {
-    printf ("Set format failed.!\n");
+    zprintf1 ("Set format failed.!\n");
     return -1;
   }
 
   if (ioctl(v4l2_fd, VIDIOC_G_FMT, &v4l2fmt) < 0)
   {
-    printf ("Get format failed.!\n");
+    zprintf1 ("Get format failed.!\n");
     return -1;
   }
 
@@ -594,7 +594,7 @@ int V4L2::imx_v4l2out_config_input (uint32_t fmt, IMXV4l2Rect *crop)
 int V4L2::imx_v4l2_set_buffer_count (uint32_t count, uint32_t memory_mode)
 {
      struct v4l2_requestbuffers buf_req;
-     printf("requeset for (%d) buffers.!\n", count);
+     zprintf3("requeset for (%d) buffers.!\n", count);
 
      memset(&buf_req, 0, sizeof(buf_req));
      buf_req.type = type;
@@ -603,7 +603,7 @@ int V4L2::imx_v4l2_set_buffer_count (uint32_t count, uint32_t memory_mode)
 
      if (ioctl(v4l2_fd, VIDIOC_REQBUFS, &buf_req) < 0)
      {
-       printf("Request %d buffers failed\n", count);
+       zprintf1("Request %d buffers failed\n", count);
        return -1;
      }
 
@@ -632,7 +632,7 @@ int V4L2::imx_v4l2_allocate_buffer (PhyMemBlock *mem)
 
     if (ioctl(v4l2_fd, VIDIOC_QUERYBUF, v4l2buf) < 0)
     {
-      printf ("VIDIOC_QUERYBUF error.!\n");
+      zprintf1 ("VIDIOC_QUERYBUF error.!\n");
       return -2;
     }
 
@@ -653,7 +653,7 @@ int V4L2::imx_v4l2_allocate_buffer (PhyMemBlock *mem)
     mem->paddr = (uint8_t *) v4l2buf->m.offset;
 //    handle->buffer_pair[handle->allocated].paddr = memblk->paddr;
     allocated++;
-    printf ("zty Allocated v4l2buffer(%p), index(%d), memblk(%p), vaddr(%p), paddr(%p), size(%d).!\n",
+    zprintf4 ("zty Allocated v4l2buffer(%p), index(%d), memblk(%p), vaddr(%p), paddr(%p), size(%d).!\n",
           v4l2buf, allocated - 1, mem, mem->vaddr, mem->paddr, mem->size);
 
 
@@ -678,7 +678,7 @@ int V4L2::imx_v4l2_dequeue_v4l2memblk(PhyMemBlock **mem)
   while (ioctl (v4l2_fd, VIDIOC_DQBUF, &v4l2buf) < 0) {
     trycnt ++;
     if(trycnt >= MAX_TRY_CNT) {
-      printf ("Dequeue buffer from v4l2 device failed.!\n");
+      zprintf1 ("Dequeue buffer from v4l2 device failed.!\n");
       return -1;
     }
 
@@ -895,7 +895,9 @@ int V4L2::v4l2_display_init(string devname)
     uint32_t fmt;
 
     int i;
-    printf("zty v4l2 display init!\n");
+
+    zprintf3("zty v4l2 display init!\n");
+
     dev = new DisplayDev(devname);
 
     dev->get_display_resolution((char *)devname.c_str());

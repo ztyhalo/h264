@@ -1,7 +1,10 @@
 #include "rtsp.h"
 #include "date/com_date.h"
 
-const char * g_file[3] = {"/opt/001.jpg","/opt/002.jpg","/opt/003.jpg"};
+const char * g_file[2][3] = {
+                            {"/opt/001.jpg","/opt/002.jpg","/opt/003.jpg"},
+                            {"/opt/001.jpg","/opt/001.jpg","/opt/003.jpg"},
+                            };
 
 
 static const char *rtsp_methods[] = {
@@ -240,7 +243,6 @@ void RTSP::setup_message_parse (char * buf, size_t n)
  ***********************************************************************************/
 int rtp_netlink_callback(RTP * pro, int s)
 {
-    (void)s;
     RTSP * midpro = (RTSP *) pro->net_father;
 
     if(midpro != NULL)
@@ -250,6 +252,7 @@ int rtp_netlink_callback(RTP * pro, int s)
             cout << "rtp have data!" <<endl;
             zprintf1("rtp up callback!\n");
 //            midpro->change_rtsp_state(RTSP_OK);
+            midpro->h264depay->vpudec->vpu_change_mode(VPU_V_AVC);
             midpro->state = RTSP_OK;
         }
         else  //rtp无数据
@@ -263,8 +266,9 @@ int rtp_netlink_callback(RTP * pro, int s)
             cout << "udprtp stop ok!" <<endl;
             if(midpro->h264depay != NULL)
             {
-                midpro->h264depay->vpudec->vpu_close();
-                midpro->h264depay->vpudec->vpu_open(VPU_V_MJPG);
+//                midpro->h264depay->vpudec->vpu_close();
+//                midpro->h264depay->vpudec->vpu_open(VPU_V_MJPG);
+                midpro->h264depay->vpudec->vpu_change_mode(VPU_V_MJPG);
                 midpro->change_rtsp_state(RTSP_NO_DATA);
                 sem_post(&midpro->m_restartsem);
             }
@@ -275,12 +279,7 @@ int rtp_netlink_callback(RTP * pro, int s)
 
 int eth_netlink_callback(NetlinkStatus * pro, int s)
 {
-//    (void)s;
-//    RTSP * midpro = (RTSP *) pro->netlinkfater;
 
-//    if(midpro != NULL)
-//        sem_post(&midpro->netlinksem);
-//    return 0;
     RTSP * midpro = (RTSP *) (RTSP *) pro->netlinkfater;
 
     if(midpro != NULL)
@@ -298,8 +297,10 @@ int eth_netlink_callback(NetlinkStatus * pro, int s)
             {
                 midpro->rtsp_stop();
             }
-            midpro->h264depay->vpudec->vpu_close();
-            midpro->h264depay->vpudec->vpu_open(VPU_V_MJPG);
+//            midpro->h264depay->vpudec->vpu_close();
+//            midpro->h264depay->vpudec->vpu_open(VPU_V_MJPG);
+            if(midpro->h264depay != NULL)
+                midpro->h264depay->vpudec->vpu_change_mode(VPU_V_MJPG);
             midpro->change_rtsp_state(RTSP_NO_LINK);
 
         }
@@ -318,7 +319,8 @@ void RTSP::link_state_image_process(void)
     int    retSize = 0;
     int    fileSize = 0;
     int    time = 0;
-  //  image_mutex_init();
+    int    id = 0;
+
 
     uint8_t * buf= NULL;
 
@@ -326,8 +328,15 @@ void RTSP::link_state_image_process(void)
     {
         if(state == RTSP_OK)
             sem_wait(&m_imagesem);
+        if(state == RTSP_NO_LINK)
+            id = 0;
+        else if(state == RTSP_NO_DATA)
+            id = 1;
+        else
+            continue;
+
         cout << "start display err image!" <<endl;
-        fp = fopen(g_file[fileSize], "rb");
+        fp = fopen(g_file[id][fileSize], "rb");
 
         if(NULL == fp)
         {
@@ -338,6 +347,7 @@ void RTSP::link_state_image_process(void)
         fileSize %= 3;
         while(1)
         {
+//            h264depay->vpudec->vpu_change_mode(VPU_V_MJPG);
             h264depay->h264buf->lock();
             h264depay->h264buf->get_write_h264buf(&buf);
             fseek(fp, 0, SEEK_SET);
@@ -359,8 +369,8 @@ void RTSP::link_state_image_process(void)
             if(state == RTSP_OK)
             {
                 cout << "state ok!" <<endl;
-                h264depay->vpudec->vpu_close();
-                h264depay->vpudec->vpu_open();
+//                h264depay->vpudec->vpu_close();
+//                h264depay->vpudec->vpu_open();
                 break;
             }
             time++;
@@ -408,10 +418,11 @@ int RTSP::rtsp_init(string ip)
         initport = 51168;
 
     memset(&msg, 0x00, sizeof(msg));
+
 //    url = "rtsp://169.254.1.168/0";
     url = "rtsp://" + ip + "/0";
     ipaddr = ip;
-    cout << url << endl;
+    zprintf2("rtsp start display %s!\n", url.c_str());
 
     if(running ==0)
     {

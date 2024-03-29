@@ -74,7 +74,7 @@ VpuDec::~VpuDec()
             ret = VPU_DecFreeMem(&frameinfo[i]);
             if(ret != VPU_DEC_RET_SUCCESS)
             {
-                printf("zty vpu dec freemem fail!\n");
+                zprintf1("zty vpu dec freemem fail!\n");
             }
             frameinfo[i].nSize = 0;
         }
@@ -89,7 +89,7 @@ VpuDec::~VpuDec()
         ret = VPU_DecFreeMem(&internal_mem_info);
         if(ret != VPU_DEC_RET_SUCCESS)
         {
-            printf("zty vpu dec free internal mem fail!\n");
+            zprintf1("zty vpu dec free internal mem fail!\n");
         }
         internal_mem_info.nSize = 0;
     }
@@ -251,7 +251,7 @@ int VpuDec::vpu_mem_init(void)
         }
         else
         {
-            printf ("sub block %d type is unknown - skipping", i);
+            zprintf1 ("sub block %d type is unknown - skipping", i);
         }
     }
     state = STATE_ALLOCATED_INTERNAL_BUFFER;
@@ -288,11 +288,11 @@ int VpuDec::vpu_init(void)
           gst_vpu_dec_object_strerror(ret));
     }
 
-    printf("====== VPUDEC: build on %s %s. ======\n",__DATE__,__TIME__);;
-    printf("\twrapper: %d.%d.%d (%s)\n", wrapper_version.nMajor, wrapper_version.nMinor,
+    zprintf1("====== VPUDEC: build on %s %s. ======\n",__DATE__,__TIME__);;
+    zprintf4("\twrapper: %d.%d.%d (%s)\n", wrapper_version.nMajor, wrapper_version.nMinor,
       wrapper_version.nRelease, (wrapper_version.pBinary? wrapper_version.pBinary:"unknow"));
-    printf("\tvpulib: %d.%d.%d\n", version.nLibMajor, version.nLibMinor, version.nLibRelease);
-    printf("\tfirmware: %d.%d.%d.%d\n", version.nFwMajor, version.nFwMinor, version.nFwRelease, version.nFwCode);
+    zprintf4("\tvpulib: %d.%d.%d\n", version.nLibMajor, version.nLibMinor, version.nLibRelease);
+    zprintf4("\tfirmware: %d.%d.%d.%d\n", version.nFwMajor, version.nFwMinor, version.nFwRelease, version.nFwCode);
 
     //allocate memory
     memset(&(vpu_internal_mem.mem_info), 0, sizeof(VpuMemInfo));
@@ -304,7 +304,7 @@ int VpuDec::vpu_init(void)
       return -2;
     }
 
-    printf("vpu allocation internal mem %d!\n", vpu_internal_mem.mem_info.nSubBlockNum);
+    zprintf4("vpu allocation internal mem %d!\n", vpu_internal_mem.mem_info.nSubBlockNum);
 
     vpu_mem_init();
 
@@ -313,23 +313,23 @@ int VpuDec::vpu_init(void)
     return 0;
 }
 
-static void printf_init_paramer(VpuDecOpenParam * param)
-{
+//static void printf_init_paramer(VpuDecOpenParam * param)
+//{
 
-  printf("zty vpu param CodecFormat %d !\n", param->CodecFormat);
-  printf("zty vpu param nReorderEnable %d !\n", param->nReorderEnable);
-  printf("zty vpu param nChromaInterleave %d !\n", param->nChromaInterleave);
-  printf("zty vpu param nMapType %d !\n", param->nMapType);
-  printf("zty vpu param nTiled2LinearEnable %d !\n", param->nTiled2LinearEnable);
-  printf("zty vpu param nPicWidth %d !\n", param->nPicWidth);
-  printf("zty vpu param nPicHeight %d !\n", param->nPicHeight);
-  printf("zty vpu param nEnableFileMode %d !\n", param->nEnableFileMode);
-  printf("zty vpu param nReserved %d !\n", param->nReserved[0]);
-  printf("zty vpu param nReserved %d !\n", param->nReserved[1]);
-  printf("zty vpu param nReserved %d !\n", param->nReserved[2]);
-//  printf("zty vpu param pAppCxt 0x%x !\n", param->pAppCxt);
+//  printf("zty vpu param CodecFormat %d !\n", param->CodecFormat);
+//  printf("zty vpu param nReorderEnable %d !\n", param->nReorderEnable);
+//  printf("zty vpu param nChromaInterleave %d !\n", param->nChromaInterleave);
+//  printf("zty vpu param nMapType %d !\n", param->nMapType);
+//  printf("zty vpu param nTiled2LinearEnable %d !\n", param->nTiled2LinearEnable);
+//  printf("zty vpu param nPicWidth %d !\n", param->nPicWidth);
+//  printf("zty vpu param nPicHeight %d !\n", param->nPicHeight);
+//  printf("zty vpu param nEnableFileMode %d !\n", param->nEnableFileMode);
+//  printf("zty vpu param nReserved %d !\n", param->nReserved[0]);
+//  printf("zty vpu param nReserved %d !\n", param->nReserved[1]);
+//  printf("zty vpu param nReserved %d !\n", param->nReserved[2]);
+////  printf("zty vpu param pAppCxt 0x%x !\n", param->pAppCxt);
 
-}
+//}
 
 
 static void printf_init_mem(VpuMemInfo * mem)
@@ -340,7 +340,7 @@ static void printf_init_mem(VpuMemInfo * mem)
     int i;
     for (i = 0; i < mem->nSubBlockNum; ++i)
     {
-        printf("zty sub block %d  type: %s  size: %d!\n", i, \
+        zprintf4("zty sub block %d  type: %s  size: %d!\n", i, \
         (mem->MemSubBlock[i].MemType == VPU_MEM_VIRT) ? \
         "virtual" : "phys", mem->MemSubBlock[i].nSize);
     }
@@ -349,7 +349,7 @@ static void printf_init_mem(VpuMemInfo * mem)
         ||(pMemPhy->pPhyAddr==NULL) || MemNotAlign(pMemPhy->pPhyAddr,VPU_MEM_ALIGN)
         )
     {
-        printf("%s: failure: invalid parameter !! \r\n",__FUNCTION__);
+        zprintf1("%s: failure: invalid parameter !! \r\n",__FUNCTION__);
 
     }
 }
@@ -376,7 +376,7 @@ int VpuDec::vpu_open(VpuCodStd type)
     open_param.nPicWidth = 0;
     open_param.nPicHeight = 0;
 
-    printf_init_paramer(&open_param);
+//    printf_init_paramer(&open_param);
     printf_init_mem(&(vpu_internal_mem.mem_info));
     ret = VPU_DecOpen(&(handle), &open_param, &(vpu_internal_mem.mem_info));
     if (ret != VPU_DEC_RET_SUCCESS)
@@ -427,27 +427,38 @@ int VpuDec::vpu_close(void)
     return 0;
 }
 
+int VpuDec::vpu_change_mode(VpuCodStd type)
+{
+    int err = 0;
+    lock();
+    if(type != m_frametype)
+    {
+        VPU_DecClose(handle);
+        err = vpu_open(type);
+    }
+    unlock();
+    return err;
+
+}
+
+
 void printf_init_info(VpuDecInitInfo * info)
 {
-  printf("zty vpu init info nPicWidth %d nPicHeight %d nFrameRateRes %d nFrameRateDiv %d!\n", info->nPicWidth, \
+  zprintf4("zty vpu init info nPicWidth %d nPicHeight %d nFrameRateRes %d nFrameRateDiv %d!\n", info->nPicWidth, \
                                         info->nPicHeight , info->nFrameRateRes, info->nFrameRateDiv);
-  printf("zty vpu init info piccropret nLeft %d nTop %d nRight %d nBottom %d!\n", info->PicCropRect.nLeft, \
+  zprintf4("zty vpu init info piccropret nLeft %d nTop %d nRight %d nBottom %d!\n", info->PicCropRect.nLeft, \
                                         info->PicCropRect.nTop , info->PicCropRect.nRight, info->PicCropRect.nBottom);
 
-  printf("zty vpu init info nMinFrameBufferCount %d nMjpgSourceFormat %d nInterlace %d nQ16ShiftWidthDivHeightRatio %d!\n", info->nMinFrameBufferCount, \
+  zprintf4("zty vpu init info nMinFrameBufferCount %d nMjpgSourceFormat %d nInterlace %d nQ16ShiftWidthDivHeightRatio %d!\n", info->nMinFrameBufferCount, \
                 info->nMjpgSourceFormat , info->nInterlace, info->nQ16ShiftWidthDivHeightRatio);
-  printf("zty vpu init info nConsumedByte %d nAddressAlignment %d !\n", info->nConsumedByte, \
+  zprintf4("zty vpu init info nConsumedByte %d nAddressAlignment %d !\n", info->nConsumedByte, \
                 info->nAddressAlignment );
 }
 
 int VpuDec::vpu_dec_object_handle_reconfig(void)
 {
   VpuDecRetCode dec_ret;
-//  GstVideoCodecState *state;
-//  GstVideoFormat fmt;
-//  gint height_align;
-//  GstBuffer *buffer;
-//  guint i;
+
 
   dec_ret = VPU_DecGetInitialInfo(handle, &(init_info));
   if (dec_ret != VPU_DEC_RET_SUCCESS)
@@ -456,7 +467,7 @@ int VpuDec::vpu_dec_object_handle_reconfig(void)
     return -1;
   }
 
-  printf_init_info(&(init_info));
+//  printf_init_info(&(init_info));
 
   if (init_info.nPicWidth <= 0 || init_info.nPicHeight <= 0)
   {
@@ -496,7 +507,7 @@ int VpuDec::vpu_add_used_frame(VpuFrameBuffer* used)
 {
     if(usedbuf.sz >=  FRAME_BUF_SIZE)
     {
-        printf("zty add used frame error!\n");
+        zprintf1("zty add used frame error!\n");
         return -1;
     }
     if(used == NULL)
@@ -529,14 +540,14 @@ int VpuDec::vpu_release_frame(void)
     rease = vpu_get_used_frame();
     if(rease == NULL)
     {
-        printf("get used frame error!\n");
+        zprintf1("get used frame error!\n");
         return -1;
     }
 
     dec_ret = VPU_DecOutFrameDisplayed(handle, rease);
     if (dec_ret != VPU_DEC_RET_SUCCESS)
     {
-      printf("zty receive frame %d clearing display failed: %s!\n",framenum,  gst_vpu_dec_object_strerror(dec_ret));
+      zprintf1("zty receive frame %d clearing display failed: %s!\n",framenum,  gst_vpu_dec_object_strerror(dec_ret));
       return -2;
     }
     return 0;
@@ -627,21 +638,21 @@ int VpuDec::vpu_decode_process(uint8_t * data, int size)
         {
             uint i;
              zprintf1("failed to decode frame: %s !\n", gst_vpu_dec_object_strerror(dec_ret));
-             printf("indaa.nsize %d process %d!\n", in_data.nSize, framenum);
+             zprintf4("indaa.nsize %d process %d!\n", in_data.nSize, framenum);
 
-             printf("zty in_data.sCodecData.nSize %d!\n", in_data.sCodecData.nSize);
+             zprintf4("zty in_data.sCodecData.nSize %d!\n", in_data.sCodecData.nSize);
 
              for(i = 0; i < in_data.sCodecData.nSize; i++)
              {
-                printf("0x%x ", in_data.sCodecData.pData[i]);
+                zprintf4("0x%x ", in_data.sCodecData.pData[i]);
              }
-             printf("\n");
+             zprintf4("\n");
 
              for(i = 0; i < 38; i++)
              {
-                 printf("0x%x ", in_data.pVirAddr[i]);
+                 zprintf4("0x%x ", in_data.pVirAddr[i]);
              }
-             printf("\n");
+             zprintf4("\n");
 
              VPU_DecReset(handle);
              return -1;
@@ -653,12 +664,12 @@ int VpuDec::vpu_decode_process(uint8_t * data, int size)
         {
             if (buf_ret & VPU_DEC_RESOLUTION_CHANGED)
             {
-              printf("zty resolution change!\n");
+              zprintf1("zty resolution change!\n");
             }
             ret = vpu_dec_object_handle_reconfig();
             if (ret != 0)
             {
-                printf("gst_vpu_dec_object_handle_reconfig fail: %d\n", ret);
+                zprintf1("gst_vpu_dec_object_handle_reconfig fail: %d\n", ret);
                 return ret;
             }
             else

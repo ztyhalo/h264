@@ -26,8 +26,8 @@ typedef struct
 }SPSPPSInfo;
 
 enum {
-    H264_DATA_TYPE =0,
-    JPG_DATA_TYPE
+    H264_DATA_TYPE = VPU_V_AVC,
+    JPG_DATA_TYPE = VPU_V_MJPG
 };
 
 class H264Buf:public MUTEX_CLASS

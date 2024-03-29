@@ -113,8 +113,8 @@ public:
     }
     ~ z_poll()
     {
-        zprintf4("destory zpoll!\n");
-        cout << "delete zpoll " <<endl;
+        zprintf3("destory zpoll!\n");
+
         if(active)
         {
 
@@ -136,7 +136,7 @@ private:
     pthread_t pid;
 private:
      static void * start_thread(void * arg){
-            zprintf1("zty pid start!\n");
+            zprintf3("zty pid start!\n");
             int res = pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,   NULL);   //设置立即取消
             if (res != 0)
             {
@@ -153,16 +153,15 @@ public:
          running = 0;
      }
      ~Pth_Class(){
-//         zprintf4("destory Pth_Class!\n");
-         cout <<"delete pthclass " << pid << endl;
+         zprintf3("destory Pth_Class pid %d!\n", (int)pid);
+
          if(pid > 0){
             running = 0;
             pthread_cancel(pid);
             pthread_join(pid, NULL);
             pid = 0;
          }
-         cout << "destory Pth_Class delete over!" <<endl;
-         zprintf1("destory Pth_Class delete over!\n");
+         zprintf3("destory Pth_Class delete over!\n");
      }
 //     void pth_class_exit(void){
 //          if(pid > 0){
@@ -184,8 +183,7 @@ public:
              else
              {
                  running = 1;
-                 zprintf1("zty create pid!\n");
-                 cout << "zty create pid!" << pid << endl;
+                 zprintf3("zty create pid %d!\n", (int)pid);
                  return 0;
              }
          }
@@ -194,7 +192,8 @@ public:
      }
 
      int stop(){
-         cout << "stop pid " << pid <<endl;
+
+         zprintf3("stop pid %d!\n", (int)pid);
          if(pid > 0)
          {
              running = 0;
@@ -202,7 +201,7 @@ public:
              pthread_join(pid, NULL);
              pid = 0;
          }
-         zprintf1("stop pid %d end\n",(int)pid);
+         zprintf3("stop pid %d end!\n",(int)pid);
          return 0;
      }
 

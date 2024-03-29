@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 //    rtsp.rtsp_init(ipaddr);
 //    rtsp.rtsp_run();
 
-    cout << "ip " << ipaddr << " !" <<endl;
+    zprintf4("ip %s!\n", ipaddr.c_str());
     gRTSP->rtsp_init(ipaddr);
     gRTSP->rtsp_run();
 

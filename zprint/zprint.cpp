@@ -10,10 +10,36 @@
 PRINTF_CLASS * PRINTF_CLASS::m_pSelf = NULL;
 PRINTF_CLASS *debug_p = PRINTF_CLASS::getInstance();
 
+static int hn_open_level_config(const char * file)
+{
+    char buf[8];
+    int i = 0;
+    FILE *fp;
+
+    fp = fopen(file, "r");
+    if(fp == NULL)
+    {
+        zprintf1("hn level config no!\n");
+        return -1;
+    }
+    memset(buf, 0x00, 8);
+
+    if(fgets(buf, 8, fp) != NULL)
+    {
+        i = atoi(buf);
+    }
+
+    fclose(fp);
+
+
+    return i;
+}
+
 PRINTF_CLASS::PRINTF_CLASS()
 {
     pfd = stdout;
     mark = 0;
+    level = PRINT_PRO;
 }
 
 PRINTF_CLASS * PRINTF_CLASS::getInstance(void)
@@ -43,7 +69,7 @@ void PRINTF_CLASS::printf_class_init(string dir)
         {
              if (access(dir.c_str(), F_OK) == 0) // dir exist
              {
-
+                int val;
                 gettimeofday(&tv, NULL);
                 p = localtime(&tv.tv_sec);
                 memset(buf, 0x00, sizeof(buf));
@@ -53,6 +79,14 @@ void PRINTF_CLASS::printf_class_init(string dir)
                 string log = buf;
 
                 string dirlog = dir + log;
+                string lev    = dir + "level";
+
+                val = hn_open_level_config(lev.c_str());
+                if(val > 0)
+                {
+                    level = val;
+                }
+
 
                 pfd =  fopen(dirlog.c_str(), "a+");
                 if(pfd == NULL)
@@ -71,7 +105,7 @@ void PRINTF_CLASS::printf_class_init(string dir)
 void PRINTF_CLASS::zprintf(const char * format, ...)
 {
     va_list args;
-    if(mark == 0) return;
+    if(mark == 0 || level < 3) return;
     if(pfd != NULL)
     {
         lock();
@@ -81,6 +115,20 @@ void PRINTF_CLASS::zprintf(const char * format, ...)
         fflush(pfd);
         unlock();
     }
+}
+
+void PRINTF_CLASS::hprintf(const char * format, ...)
+{
+    va_list args;
+    if(mark == 0 || level < 4) return;
+
+    lock();
+    va_start(args, format);
+    vfprintf(stdout, format, args);
+    va_end(args);
+    fflush(stdout);
+    unlock();
+
 }
 
 void PRINTF_CLASS::printf_init(const char * name, int fd)
@@ -115,7 +163,7 @@ void PRINTF_CLASS::printf_init(const char * name, int fd)
 void PRINTF_CLASS::timeprintf(const char * format, ...)
 {
     va_list args;
-    if(mark == 0) return;
+    if(mark == 0 || level < 2) return;
      lock();
     if(pfd != NULL)
     {
@@ -140,7 +188,7 @@ void PRINTF_CLASS::timeprintf(const char * format, ...)
 void PRINTF_CLASS::timemsprintf(const char * format, ...)
 {
     va_list args;
-    if(mark == 0) return;
+    if(mark == 0 || level < 1) return;
     lock();
     if(pfd != NULL)
     {

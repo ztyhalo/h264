@@ -63,7 +63,7 @@ typedef  struct{
 } VPUBUFPOINT;
 
 
-class VpuDec
+class VpuDec:public MUTEX_CLASS
 {
 public:
     VpuDec();
@@ -84,6 +84,7 @@ public:
     int vpu_add_used_frame(VpuFrameBuffer* used);
     VpuFrameBuffer* vpu_get_used_frame(void);
     int vpu_release_frame(void);
+    int vpu_change_mode(VpuCodStd type);
 
 public:
     VpuDecState state;

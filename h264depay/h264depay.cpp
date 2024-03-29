@@ -433,12 +433,13 @@ H264Depay::H264Depay()
     m_spsmark = 0;
     m_ppsmark = 0;
 
-    printf("zty h264init %d!\n", next_seq);
+    zprintf4("zty h264init %d!\n", next_seq);
 }
 
 H264Depay::~H264Depay()
 {
     cout << "delete h264 depay!" <<endl;
+    zprintf3("delete h264 depay!");
     stop();
 
     if(vpudec != NULL)
@@ -733,22 +734,32 @@ void H264Depay::run()
 
 //        printf("buf data type %d vpu type %d!\n", datatype, vpudec->m_frametype);
 
+
         if(size > 0 && buf != NULL)
         {
-            nal_unit_type = buf[4] & 0x1f;
-            if(nal_unit_type == 7 || nal_unit_type == 8)
+            if(datatype != vpudec->m_frametype)
             {
-                if(first == 0 && nal_unit_type == 8)
-                {
-                    first = 1;
-//                    vpudec->set_vpu_codec_data(h264buf->info.data, h264buf->info.nSize);
-                    vpudec->set_vpu_codec_data(m_info.data, m_info.nSize);
-                }
+                printf("buf data type %d vpu type %d!\n", datatype, vpudec->m_frametype);
+                zprintf1("buf data type %d vpu type %d!\n", datatype, vpudec->m_frametype);
             }
             else
             {
-//                vpudec->vpu_decode_process(buf, size, NULL, 0, &ret);
-                vpudec->vpu_decode_process(buf, size);
+
+                nal_unit_type = buf[4] & 0x1f;
+                if(nal_unit_type == 7 || nal_unit_type == 8)
+                {
+                    if(first == 0 && nal_unit_type == 8)
+                    {
+                        first = 1;
+    //                    vpudec->set_vpu_codec_data(h264buf->info.data, h264buf->info.nSize);
+                        vpudec->set_vpu_codec_data(m_info.data, m_info.nSize);
+                    }
+                }
+                else
+                {
+    //                vpudec->vpu_decode_process(buf, size, NULL, 0, &ret);
+                    vpudec->vpu_decode_process(buf, size);
+                }
             }
 
             h264buf->add_buf_rd();

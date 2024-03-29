@@ -38,6 +38,7 @@ class PRINTF_CLASS:public MUTEX_CLASS
 private:
     FILE * pfd;
     int    mark;
+    int    level;
     PRINTF_CLASS();
 
 
@@ -59,6 +60,7 @@ public:
     void zprintf(const char * format, ...);
     void timeprintf(const char * format, ...);
     void timemsprintf(const char * format, ...);
+    void hprintf(const char * format, ...);
 
 private:
     static PRINTF_CLASS * m_pSelf;
@@ -92,7 +94,7 @@ extern PRINTF_CLASS * debug_p;
 
 
 
-#define PRINT_PRO      3
+#define PRINT_PRO      4
 
 #if PRINT_PRO >=1
 #define zprintf1 debug_p->timemsprintf
@@ -113,7 +115,7 @@ extern PRINTF_CLASS * debug_p;
 #endif
 
 #if PRINT_PRO >=4
-#define zprintf4 printf
+#define zprintf4 debug_p->hprintf
 #else
 #define zprintf4(...)
 #endif
