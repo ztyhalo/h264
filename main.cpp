@@ -38,6 +38,8 @@ void SignalFunc(int var)
 {
     ::printf("<DeviceMng signal1 exit %d val!>\n", var);
 
+    zprintf1("h264 app stop: ");
+
     if(gRTSP != NULL)
     {
         delete gRTSP;

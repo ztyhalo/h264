@@ -24,7 +24,7 @@ using namespace std;
 #define MemNotAlign(mem,align)	((((unsigned int)mem)%(align))!=0)
 
 
-#define VPU_MAX_BUF 120
+#define VPU_MAX_BUF 12
 #define FRAME_MAX_NUM  260  //260
 #define VPU_DATA_SIZE 1248
 
@@ -134,6 +134,9 @@ public:
     sem_t        m_datasem;
     uint32_t     m_revfnum;
     VPUH264Info  m_h264info;
+    struct timeval m_tstart;
+    struct timeval m_tend;
+
 
 
 };

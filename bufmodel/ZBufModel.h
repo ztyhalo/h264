@@ -13,6 +13,7 @@ public:
     uint                 m_wr;
     uint                 m_rd;
     uint                 m_num;
+    uint                 m_maxnum;
     SUPPLEM              m_supm[N];
 
 public:
@@ -57,6 +58,11 @@ int ZBufModel<DTYPE,SUPPLEM,N,SIZE>::buf_basewrite_data(DTYPE * val, int num, SU
     m_wr++;
     m_wr %= N;
     m_num++;
+    if(m_num > m_maxnum)
+    {
+        m_maxnum = m_num;
+        zprintf1("buf max write is %d!\n", m_maxnum);
+    }
 
     return 0;
 }

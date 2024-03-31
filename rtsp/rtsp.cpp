@@ -3,7 +3,7 @@
 
 const char * g_file[2][3] = {
                                 {"/opt/001.jpg","/opt/002.jpg","/opt/003.jpg"},
-                                {"/opt/001.jpg","/opt/001.jpg","/opt/003.jpg"},
+                                {"/opt/001.jpg","/opt/005.jpg","/opt/003.jpg"},
                             };
 
 
@@ -407,10 +407,12 @@ int RTSP::rtsp_init(string ip)
         h264depay->rtp_h264_init();
     }
 
+    h264depay->rtp_restart_process();
+
 
     if(running ==0)
     {
-        this->start();
+        this->start("LinkImage_pthread");
     }
 
 
@@ -423,7 +425,7 @@ int RTSP::rtsp_init(string ip)
         link->netlinkcb = eth_netlink_callback;
         link->netlinkfater = this;
 
-        link->start();
+        link->start("linkstate_pthread");
     }
 
     if(link->getLinkstate() != 1)
@@ -539,7 +541,7 @@ int RTSP::rtsp_init(string ip)
 
    udprtp->net_father = this;
    udprtp->netstatecb = rtp_netlink_callback;
-   udprtp->start();
+   udprtp->start("rtpclient_pthread");
 
    gst_rtsp_message_init_request(&msg, GST_RTSP_SETUP, url.c_str());
    msg_str = message_to_string(&msg);

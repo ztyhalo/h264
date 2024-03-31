@@ -134,6 +134,7 @@ class Pth_Class
 {
 private:
     pthread_t pid;
+    string    m_name;
 private:
      static void * start_thread(void * arg){
             zprintf3("zty pid start!\n");
@@ -151,6 +152,7 @@ public:
      Pth_Class(){
          pid = 0;
          running = 0;
+         m_name = "";
      }
      ~Pth_Class(){
          zprintf3("destory Pth_Class pid %d!\n", (int)pid);
@@ -172,7 +174,7 @@ public:
 //          zprintf3("destory Pth_Class delete over!\n");
 //     }
 
-     int start(){
+     int start(string name =""){
          if(pid == 0)
          {
              if(pthread_create(&pid, NULL, start_thread,this) != 0)
@@ -183,7 +185,8 @@ public:
              else
              {
                  running = 1;
-                 zprintf3("zty create pid %d!\n", (int)pid);
+                 m_name = name;
+                 zprintf3("zty create pid %d name %s!\n", (int)pid, name.c_str());
                  return 0;
              }
          }
@@ -193,7 +196,7 @@ public:
 
      int stop(){
 
-         zprintf3("stop pid %d!\n", (int)pid);
+         zprintf3("stop pid %d name %s!\n", (int)pid, m_name.c_str());
          if(pid > 0)
          {
              running = 0;

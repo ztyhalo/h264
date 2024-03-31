@@ -47,7 +47,7 @@ void RTP::run()
            if(state != 1)
            {
                 state = 1; //已经有数据
-//                printf("zty send rtp have data!\n");
+
                 if(this->netstatecb != NULL)
                 {
                     this->netstatecb(this, state);
@@ -67,10 +67,11 @@ void RTP::run()
         else
         {
             overnum++;
-            if(overnum >3)
+            if(overnum > 3)
             {
                 zprintf1("wati over!\n");
                 overnum = 0;
+
                 if(state != 0)
                 {
                     state = 0;
