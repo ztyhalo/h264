@@ -421,15 +421,13 @@ int H264Buf::add_buf_rd(void)
 
 H264Depay::H264Depay()
 {
-    h264buf = new H264Buf;
     seq = 0;
     next_seq = 0;
     proframe = 0;
     m_size = 0;
     m_runok = true;
     m_streamtype = 0;
-    m_spsmark = 0;
-    m_ppsmark = 0;
+    vpudec = NULL;
 
     zprintf4("zty h264init %d!\n", next_seq);
 }
@@ -437,53 +435,26 @@ H264Depay::H264Depay()
 H264Depay::~H264Depay()
 {
     zprintf3("delete h264 depay!");
-    stop();
+//    stop();
 
     if(vpudec != NULL)
         delete vpudec;
 
-    if(h264buf != NULL)
-        delete h264buf;
+//    if(h264buf != NULL)
+//        delete h264buf;
 
 }
 
-int H264Depay::set_sps_info(uint8_t * buf, int size)
-{
-
-    m_info.data[0] = 0x1;
-    m_info.data[1] = buf[5]; //profile
-    m_info.data[2] = buf[6]; //profile compat
-    m_info.data[3] = buf[7]; //level
-    m_info.data[4] = 0xff;   /* 6 bits reserved | 2 bits lengthSizeMinusOn */
-//    info.data[5] = 0xe0 | buf[3];
-    m_info.data[5] = 0xe1;  /* [5]: 3 bits reserved (111) + 5 bits number of sps (00001) */
-
-    memcpy(m_info.data +6, buf +2, size -2);
-    m_info.nSize = 6 + size -2;
-//    printf("set sps info len %d!\n", info.nSize);
-//    data_printf("set sps info len ", info.data, info.nSize);
-    return 0;
-}
-int H264Depay::set_pps_info(uint8_t * buf, int size)
-{
-
-    /*number of pps*/
-    /*16bits: pps_size*/
-    /*pps data */
-    m_info.data[m_info.nSize] = 0x01;
-    memcpy(m_info.data+m_info.nSize+1, buf+2, size -2);
-    m_info.nSize += (size -1);
-//    data_printf("set sps pps info len ", info.data, info.nSize);
-    return 0;
-}
 
 int H264Depay::data_parse(uint8_t * buf, int size, int q, int drop)
 {
-//    uint8_t nal_ref_idc;
     uint8_t nal_unit_type;
     uint32_t nalu_size;
     uint32_t outsize;
     uint32_t payload_len = size;
+
+    VPUDataType datatype;
+
     /* +---------------+
      * |0|1|2|3|4|5|6|7|
      * +-+-+-+-+-+-+-+-+
@@ -498,6 +469,8 @@ int H264Depay::data_parse(uint8_t * buf, int size, int q, int drop)
     {
         m_runok = false;
     }
+    datatype.m_datatype = H264_DATA_TYPE;
+    datatype.m_seq = q;
 
     nal_unit_type = buf[0] & 0x1f;
 
@@ -587,8 +560,7 @@ int H264Depay::data_parse(uint8_t * buf, int size, int q, int drop)
                     m_runok = false;
                     break;
                 }
-//                printf("write h264 iframe!\n");
-                h264buf->write_h264data_buf(m_buf, m_size, q);
+                vpudec->vpu_write_buffer_data(m_buf, m_size, datatype);
             }
             break;
         }
@@ -626,26 +598,26 @@ int H264Depay::data_parse(uint8_t * buf, int size, int q, int drop)
                 }
 
             }
-            if(nal_unit_type == 7)
-            {
-                if(m_spsmark == 0)
-                {
-                    set_sps_info(m_buf, m_size);
-                    m_spsmark =1;
-                }
+//            if(nal_unit_type == 7)
+//            {
+//                if(m_spsmark == 0)
+//                {
+//                    set_sps_info(m_buf, m_size);
+//                    m_spsmark =1;
+//                }
 
-            }
-            else if(nal_unit_type == 8)
-            {
-                if(m_ppsmark == 0)
-                {
-                    set_pps_info(m_buf, m_size);
-                    m_ppsmark = 1;
-                }
+//            }
+//            else if(nal_unit_type == 8)
+//            {
+//                if(m_ppsmark == 0)
+//                {
+//                    set_pps_info(m_buf, m_size);
+//                    m_ppsmark = 1;
+//                }
 
-            }
-//            printf("write h264 frame %d!\n", nal_unit_type);
-            h264buf->write_h264data_buf(m_buf, m_size, q);
+//            }
+
+            vpudec->vpu_write_buffer_data(m_buf, m_size, datatype);
             break;
           }
     }
@@ -678,9 +650,7 @@ int H264Depay::data_porcess(uint8_t * buf, int size)
         }        
         next_seq++;
     }
-//   zprintf1("receive end seq %d next %d!\n", seq, next_seq);
 
-//    h264buf->write_h264buf(buf+H264_HEAD_MIN_LEN, size-H264_HEAD_MIN_LEN, seq, drop);
     data_parse(buf+H264_HEAD_MIN_LEN, size-H264_HEAD_MIN_LEN, seq, drop);
     return 0;
 }
@@ -710,60 +680,68 @@ void H264Depay::rtp_h264_init(void * pro)
 
 void H264Depay::rtp_h264_init(void)
 {
-    vpudec = new VpuDec;
+    if(vpudec == NULL)
+        vpudec = new VpuDec;
     vpudec->vpu_init();
-}
-
-void H264Depay::run()
-{
-    int size;
-    uint8_t * buf;
-    uint8_t nal_unit_type;
-    uint8_t datatype;
-    int first = 0;
-
     vpudec->vpu_open();
-
-    while(1)
-    {
-        sem_wait(&h264buf->mgsem);
-        size = h264buf->get_h264buf(&buf, &datatype);
-
-//        printf("buf data type %d vpu type %d!\n", datatype, vpudec->m_frametype);
-
-
-        if(size > 0 && buf != NULL)
-        {
-            if(datatype != vpudec->m_frametype)
-            {
-                printf("buf data type %d vpu type %d!\n", datatype, vpudec->m_frametype);
-                zprintf1("buf data type %d vpu type %d!\n", datatype, vpudec->m_frametype);
-            }
-            else
-            {
-
-                nal_unit_type = buf[4] & 0x1f;
-                if(nal_unit_type == 7 || nal_unit_type == 8)
-                {
-                    if(first == 0 && nal_unit_type == 8)
-                    {
-                        first = 1;
-    //                    vpudec->set_vpu_codec_data(h264buf->info.data, h264buf->info.nSize);
-                        vpudec->set_vpu_codec_data(m_info.data, m_info.nSize);
-                    }
-                }
-                else
-                {
-    //                vpudec->vpu_decode_process(buf, size, NULL, 0, &ret);
-                    vpudec->vpu_decode_process(buf, size);
-                }
-            }
-
-            h264buf->add_buf_rd();
-
-            proframe++;
-        }
-
-    }
+    vpudec->start();
+//    zprintf4("rtp h264 init ok!\n");
 }
+
+//void H264Depay::run()
+//{
+//    if(vpudec != NULL)
+//    {
+//        vpudec->start();
+//    }
+////    int size;
+////    uint8_t * buf;
+////    uint8_t nal_unit_type;
+////    uint8_t datatype;
+////    int first = 0;
+
+////    vpudec->vpu_open();
+
+////    while(1)
+////    {
+////        sem_wait(&h264buf->mgsem);
+////        size = h264buf->get_h264buf(&buf, &datatype);
+
+//////        printf("buf data type %d vpu type %d!\n", datatype, vpudec->m_frametype);
+
+
+////        if(size > 0 && buf != NULL)
+////        {
+////            if(datatype != vpudec->m_frametype)
+////            {
+////                printf("buf data type %d vpu type %d!\n", datatype, vpudec->m_frametype);
+////                zprintf1("buf data type %d vpu type %d!\n", datatype, vpudec->m_frametype);
+////            }
+////            else
+////            {
+
+////                nal_unit_type = buf[4] & 0x1f;
+////                if(nal_unit_type == 7 || nal_unit_type == 8)
+////                {
+////                    if(first == 0 && nal_unit_type == 8)
+////                    {
+////                        first = 1;
+////    //                    vpudec->set_vpu_codec_data(h264buf->info.data, h264buf->info.nSize);
+////                        vpudec->set_vpu_codec_data(m_info.data, m_info.nSize);
+////                    }
+////                }
+////                else
+////                {
+////    //                vpudec->vpu_decode_process(buf, size, NULL, 0, &ret);
+////                    vpudec->vpu_decode_process(buf, size);
+////                }
+////            }
+
+////            h264buf->add_buf_rd();
+
+////            proframe++;
+////        }
+
+////    }
+//}
 

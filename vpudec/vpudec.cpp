@@ -1,6 +1,13 @@
 #ifdef ARM
 #include "vpudec.h"
 
+//unsigned char g_vpuPara[42] = {0x1  ,0x64 ,0x0  ,0x2a ,0xff ,0xe1 ,0x0  ,0x1a ,
+//                               0x67 ,0x64 ,0x0  ,0x2a ,0xac ,0x2c ,0x6a ,0x81 ,
+//                               0xe0 ,0x8  ,0x9f ,0x96 ,0x6a ,0x2  ,0x2  ,0x2 ,
+//                               0x80 ,0x0  ,0x0  ,0x3  ,0x0  ,0x80 ,0x0  ,0x0 ,
+//                               0x14 ,0x42 ,0x1  ,0x0  ,0x5  ,0x68 ,0xee ,0x31,
+//                               0xb2 ,0x1b };
+
 G2dDISPLAY::G2dDISPLAY()
 {
     memset(block, 0x00,sizeof(block));
@@ -57,6 +64,8 @@ VpuDec::VpuDec()
     display = NULL;
     memset(&usedbuf, 0, sizeof(usedbuf));
     m_frametype = VPU_V_AVC;
+    m_databuf = NULL;
+    sem_init(&m_datasem, 0,0);
 
 }
 VpuDec::~VpuDec()
@@ -64,6 +73,7 @@ VpuDec::~VpuDec()
     int i;
     VpuDecRetCode ret;
 
+    stop();
     VPU_DecClose(handle);
     VPU_DecUnLoad();
 
@@ -103,6 +113,12 @@ VpuDec::~VpuDec()
         delete display;
         display = NULL;
     }
+    if(m_databuf != NULL)
+    {
+        delete m_databuf;
+        m_databuf = NULL;
+    }
+    sem_destroy(&m_datasem);
 }
 
 
@@ -264,8 +280,10 @@ int VpuDec::vpu_init(void)
     VpuVersionInfo version;
     VpuWrapperVersionInfo wrapper_version;
 //    int i;
-
-    v4l2 = new V4L2;
+    if(m_databuf == NULL)
+        m_databuf = new VPUDataBuf;
+    if(v4l2 == NULL)
+        v4l2 = new V4L2;
 
     v4l2->v4l2_display_init("/dev/video17");
 
@@ -361,6 +379,7 @@ int VpuDec::vpu_open(VpuCodStd type)
     int config_param;
     int capability=0;
 
+    zprintf4("vpu open type %d!\n", type);
     memset(&open_param, 0, sizeof(open_param));
 
     open_param.CodecFormat = type;   //VPU_V_MJPG; //VPU_V_AVC;
@@ -611,7 +630,16 @@ int VpuDec::vpu_dec_data_output(void)
     return 0;
 }
 
-
+void data_printfpsp(char * mes, uint8_t * buf, int size)
+{
+    int i;
+    printf("%s %d!\n", mes, size);
+    for(i = 0; i < size; i++)
+    {
+        printf("0x%x ", buf[i]);
+    }
+    printf("\n");
+}
 
 
 int VpuDec::vpu_decode_process(uint8_t * data, int size)
@@ -665,6 +693,7 @@ int VpuDec::vpu_decode_process(uint8_t * data, int size)
             if (buf_ret & VPU_DEC_RESOLUTION_CHANGED)
             {
               zprintf1("zty resolution change!\n");
+              zprintf4("zty resolution change!\n");
             }
             ret = vpu_dec_object_handle_reconfig();
             if (ret != 0)
@@ -743,6 +772,108 @@ int VpuDec::vpu_decode_process(uint8_t * data, int size)
     }
     return ret;
 
+}
+
+int VpuDec::vpu_write_buffer_data(uint8_t * buf, int size, VPUDataType para)
+{
+    int err;
+    err = m_databuf->buf_write_data(buf, size, para);
+    if(err == 0)
+    {
+        m_revfnum++;
+        sem_post(&m_datasem);
+    }
+    return err;
+}
+
+int VpuDec::vpu_write_data_from_file(FILE * fp, int size, VPUDataType para)
+{
+    int err =0;
+//    set_vpu_codec_data(g_vpuPara, 42);
+    err = m_databuf->buf_write_data_from_file(fp, size, para);
+    if(err > 0)
+    {
+        sem_post(&m_datasem);
+    }
+    return err;
+}
+
+int VpuDec::set_h264sps_info(uint8_t * buf, int size)
+{
+
+    m_h264info.nSize = 0;
+
+    m_h264info.data[0] = 0x1;
+    m_h264info.data[1] = buf[5]; //profile
+    m_h264info.data[2] = buf[6]; //profile compat
+    m_h264info.data[3] = buf[7]; //level
+    m_h264info.data[4] = 0xff;   /* 6 bits reserved | 2 bits lengthSizeMinusOn */
+//    info.data[5] = 0xe0 | buf[3];
+    m_h264info.data[5] = 0xe1;  /* [5]: 3 bits reserved (111) + 5 bits number of sps (00001) */
+
+    memcpy(m_h264info.data +6, buf +2, size -2);
+    m_h264info.nSize = 6 + size -2;
+
+    return 0;
+}
+int VpuDec::set_h264pps_info(uint8_t * buf, int size)
+{
+
+    /*number of pps*/
+    /*16bits: pps_size*/
+    /*pps data */
+    m_h264info.data[m_h264info.nSize] = 0x01;
+    memcpy(m_h264info.data + m_h264info.nSize +1, buf + 2, size -2);
+    m_h264info.nSize += (size -1);
+
+    return 0;
+}
+
+void VpuDec::run()
+{
+    int size;
+    uint8_t *   buf;
+    uint8_t     nal_unit_type;
+    VPUDataType datatype;
+//    int first = 0;
+
+//    vpu_open();
+    zprintf4("zty vpudec open ok!\n");
+
+    while(running)
+    {
+        sem_wait(&m_datasem);
+        size = m_databuf->get_buf_data(&buf, &datatype);
+
+        if(size > 0 && buf != NULL)
+        {
+            if(datatype.m_datatype != m_frametype)
+            {
+                printf("buf data type %d vpu type %d!\n", datatype.m_datatype, m_frametype);
+                zprintf1("buf data type %d vpu type %d!\n", datatype.m_datatype, m_frametype);
+            }
+            else
+            {
+
+                nal_unit_type = buf[4] & 0x1f;
+                if(nal_unit_type == 7)
+                    set_h264sps_info(buf,size);
+                else if(nal_unit_type == 8)
+                {
+                    set_h264pps_info(buf, size);
+                    set_vpu_codec_data(m_h264info.data, m_h264info.nSize);
+//                    data_printfpsp("set sps pps info len ", m_h264info.data, m_h264info.nSize);
+                }
+                else
+                {
+                   vpu_decode_process(buf, size);
+                }
+            }
+
+            m_databuf->add_buf_rd();
+        }
+
+    }
 }
 
 #endif //ARM

@@ -71,7 +71,7 @@ public:
 };
 
 
-class H264Depay:public Pth_Class
+class H264Depay
 {
 public:
     H264Depay();
@@ -83,27 +83,25 @@ public:
     int      m_size;
     int      m_runok;
     int      m_streamtype;
-    SPSPPSInfo m_info;
+//    SPSPPSInfo m_info;
 
-    int     m_spsmark;
-    int     m_ppsmark;
+//    int     m_spsmark;
+//    int     m_ppsmark;
 
 
-    H264Buf * h264buf;
+//    H264Buf * h264buf;
     VpuDec *  vpudec;
 
     int      proframe;
 
     int data_porcess(uint8_t * buf, int size);
-    int set_sps_info(uint8_t * buf, int size);
-    int set_pps_info(uint8_t * buf, int size);
+//    int set_sps_info(uint8_t * buf, int size);
+//    int set_pps_info(uint8_t * buf, int size);
     int data_parse(uint8_t * buf, int size, int q, int drop);
 
     void rtp_h264_init(void * pro);
     void rtp_h264_init(void);
-    void run();
-
-
+//    void run();
 
 };
 

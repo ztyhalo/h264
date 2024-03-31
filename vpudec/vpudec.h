@@ -10,6 +10,9 @@
 #include "g2d.h"
 #include "phymem.h"
 #include "v4l2/v4l2.h"
+#include "bufmodel/ZBufModel.h"
+#include "epoll/e_poll.h"
+#include <semaphore.h>
 
 using namespace std;
 
@@ -25,6 +28,14 @@ using namespace std;
 #define FRAME_MAX_NUM  260  //260
 #define VPU_DATA_SIZE 1248
 
+#define VPU_PARA_LEN   64
+
+typedef struct
+{
+    unsigned char data[VPU_PARA_LEN];		/*buffer virtual addr*/
+    unsigned int nSize;		/*valid data length */
+}VPUH264Info;
+
 class VPUDataType
 {
 public:
@@ -32,6 +43,7 @@ public:
     int m_seq;
 };
 
+#define VPUDataBuf ZBufModel<uint8_t, VPUDataType, VPU_MAX_BUF, FRAME_MAX_NUM*VPU_DATA_SIZE>
 
 //typedef struct {
 //  uint8_t *vaddr;
@@ -74,17 +86,17 @@ typedef  struct{
 } VPUBUFPOINT;
 
 
-class VpuDec:public MUTEX_CLASS
+class VpuDec:public Pth_Class,public MUTEX_CLASS
 {
 public:
     VpuDec();
-    ~VpuDec();
+    virtual ~VpuDec();
     int vpu_init(void);
     int vpu_open(void);
     int vpu_open(VpuCodStd type);
     int vpu_close(void);
     int vpu_mem_init(void);
-//    int vpu_decode_process(uint8_t * data, int size, uint8_t *ext, int extsize, int * okmark);
+
     int vpu_decode_process(uint8_t * data, int size);
     int vpu_dec_object_handle_reconfig(void);
     int set_vpu_codec_data(unsigned char * buf, unsigned int size);
@@ -96,6 +108,11 @@ public:
     VpuFrameBuffer* vpu_get_used_frame(void);
     int vpu_release_frame(void);
     int vpu_change_mode(VpuCodStd type);
+    int vpu_write_buffer_data(uint8_t * buf, int size, VPUDataType para);
+    int vpu_write_data_from_file(FILE * fp, int size, VPUDataType para);
+    int set_h264sps_info(uint8_t * buf, int size);
+    int set_h264pps_info(uint8_t * buf, int size);
+    void run();
 
 public:
     VpuDecState state;
@@ -113,6 +130,11 @@ public:
     V4L2       * v4l2;
     uint32_t     framenum;
     VPUBUFPOINT  usedbuf;
+    VPUDataBuf * m_databuf;
+    sem_t        m_datasem;
+    uint32_t     m_revfnum;
+    VPUH264Info  m_h264info;
+
 
 };
 #endif //ARM

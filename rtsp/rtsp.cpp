@@ -305,16 +305,15 @@ int eth_netlink_callback(NetlinkStatus * pro, int s)
 void RTSP::link_state_image_process(void)
 {
 
-    //每次读到的字符串长度
-//    FILE * fp = NULL;
-
-    int    retSize = 0;
     int    fileSize = 0;
     int    time = 0;
     int    id = 0;
 
+    VPUDataType datatype;
+    datatype.m_datatype = JPG_DATA_TYPE;
+    datatype.m_seq = 0;
 
-    uint8_t * buf= NULL;
+//    sleep(1);
 
     while(1)
     {
@@ -342,22 +341,10 @@ void RTSP::link_state_image_process(void)
 
         while(1)
         {
-            h264depay->h264buf->lock();
-            h264depay->h264buf->get_write_h264buf(&buf);
+
             fseek(m_fp, 0, SEEK_SET);
+            h264depay->vpudec->vpu_write_data_from_file(m_fp, FRAME_MAX_NUM * H264_DATA_SIZE, datatype);
 
-
-            retSize = fread(buf, 1, FRAME_MAX_NUM * H264_DATA_SIZE, m_fp);
-
-            if(retSize <= FRAME_MAX_NUM * H264_DATA_SIZE)
-                zprintf4("zty test read %d ok!\n", retSize);
-            else
-                zprintf1("zty testread %d error!\n", retSize);
-
-
-
-            h264depay->h264buf->write_h264buf(retSize, JPG_DATA_TYPE);
-            h264depay->h264buf->unlock();
 
             sleep(1);
             if(state == RTSP_OK)
@@ -414,17 +401,19 @@ int RTSP::rtsp_init(string ip)
     ipaddr = ip;
     zprintf2("rtsp start display %s!\n", url.c_str());
 
+    if(h264depay == NULL)
+    {
+        h264depay = new H264Depay;
+        h264depay->rtp_h264_init();
+    }
+
+
     if(running ==0)
     {
         this->start();
     }
 
-    if(h264depay == NULL)
-    {
-        h264depay = new H264Depay;
-        h264depay->rtp_h264_init();
-        h264depay->start();
-    }
+
 
     if(link == NULL)
     {
@@ -439,6 +428,8 @@ int RTSP::rtsp_init(string ip)
 
     if(link->getLinkstate() != 1)
     {
+        zprintf4("no link!\n");
+        h264depay->vpudec->vpu_change_mode(VPU_V_MJPG);
         state = RTSP_NO_LINK;
         sem_post(&m_imagesem);
         return err;
@@ -649,11 +640,3 @@ int  RTSP::rtsp_stop(void)
     return 0;
 }
 
-
-int RTSP::rtsp_restart(string ip)
-{
-
-    this->h264depay->vpudec->vpu_close();
-    this->h264depay->vpudec->vpu_open();
-    return rtsp_init(ip);
-}
