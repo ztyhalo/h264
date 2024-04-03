@@ -24,7 +24,7 @@ using namespace std;
 #define MemNotAlign(mem,align)	((((unsigned int)mem)%(align))!=0)
 
 
-#define VPU_MAX_BUF 12
+#define VPU_MAX_BUF 18
 #define FRAME_MAX_NUM  260  //260
 #define VPU_DATA_SIZE 1248
 

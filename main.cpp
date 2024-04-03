@@ -77,9 +77,9 @@ int main(int argc, char* argv[])
     signal(SIGTERM, SignalFunc);
 
 #ifdef BREAKPAD
-//    system("mkdir -p /opt/h264Logs/crashlog");
-//    google_breakpad::MinidumpDescriptor descriptor("/opt/h264Logs/crashlog");
-//    eh = new google_breakpad::ExceptionHandler(descriptor, NULL, dumpCallback, NULL, true, -1);
+    system("mkdir -p /opt/h264Logs/crashlog");
+    google_breakpad::MinidumpDescriptor descriptor("/opt/h264Logs/crashlog");
+    eh = new google_breakpad::ExceptionHandler(descriptor, NULL, dumpCallback, NULL, true, -1);
 //    crash();
 #endif
 
