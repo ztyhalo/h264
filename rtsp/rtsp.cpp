@@ -2,8 +2,8 @@
 #include "date/com_date.h"
 
 const char * g_file[2][3] = {
-                                {"/opt/001.jpg","/opt/002.jpg","/opt/003.jpg"},
-                                {"/opt/001.jpg","/opt/005.jpg","/opt/003.jpg"},
+                                {"/opt/config/h264/001.jpg","/opt/config/h264/002.jpg","/opt/config/h264/003.jpg"},
+                                {"/opt/config/h264/001.jpg","/opt/config/h264/005.jpg","/opt/config/h264/003.jpg"},
                             };
 
 
