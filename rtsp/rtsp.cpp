@@ -179,8 +179,12 @@ gst_rtsp_message_init_request (GstRTSPMessage * msg, GstRTSPMethod method,
 }
 RTSP::~RTSP()
 {
-    zprintf3("rtsp delete!\n");
+    zprintf4("rtsp delete!\n");
 
+    if(h264depay != NULL && h264depay->vpudec != NULL)
+    {
+        h264depay->vpudec->vpu_stop();
+    }
     stop();
 
 
@@ -262,7 +266,7 @@ int rtp_netlink_callback(RTP * pro, int s)
 
             if(midpro->h264depay != NULL)
             {
-                midpro->h264depay->vpudec->vpu_change_mode(VPU_V_MJPG);
+                // midpro->h264depay->vpudec->vpu_change_mode(VPU_V_MJPG);
                 midpro->change_rtsp_state(RTSP_NO_DATA);
                 sem_post(&midpro->m_restartsem);
             }
@@ -308,14 +312,22 @@ void RTSP::link_state_image_process(void)
     int    fileSize = 0;
     int    time = 0;
     int    id = 0;
+    int   datasize = 0;
+    int   lssize = 0;
+    int err;
+    int  frameid = 0;
+    uint8_t  m_buf[FRAME_MAX_NUM * H264_DATA_SIZE];
 
     VPUDataType datatype;
     datatype.m_datatype = JPG_DATA_TYPE;
     datatype.m_seq = 0;
 
+    datatype.m_datatype = H264_DATA_TYPE;
+
+
 //    sleep(1);
 
-    while(1)
+    while(running)
     {
         if(state == RTSP_OK)
             sem_wait(&m_imagesem);
@@ -326,9 +338,10 @@ void RTSP::link_state_image_process(void)
         else
             continue;
 
-        zprintf4("start display err image!\n");
+        // zprintf4("start display err image!\n");
 
-        m_fp = fopen(g_file[id][fileSize], "rb");
+        // m_fp = fopen(g_file[id][fileSize], "rb");
+        m_fp = fopen("/opt/lsh264", "rb");
 
         if(NULL == m_fp)
         {
@@ -343,21 +356,64 @@ void RTSP::link_state_image_process(void)
         {
 
             fseek(m_fp, 0, SEEK_SET);
-            h264depay->vpudec->vpu_write_data_from_file(m_fp, FRAME_MAX_NUM * H264_DATA_SIZE, datatype);
+            while(1)
+            {
+                err = fread(&datasize, 1, sizeof(uint), m_fp);
 
+                if(err != 4)
+                {
+                    zprintf4("read error!\n");
+                    break;
+                }
+                else
+                {
+                    zprintf4("read datasize is %d!\n", datasize);
+                    err = fread(m_buf, 1, datasize, m_fp);
+                    if(err != datasize)
+                    {
+                        zprintf4("read data error!\n");
+                        break;
+                    }
+                    lssize = datasize -4;
+                    memcpy(m_buf, &lssize, 4);
+                    m_buf[0] = m_buf[1] = 0;
+                    m_buf[2] = lssize >> 8;
+                    m_buf[3] = lssize & 0xff;
+                    zprintf1("file write size %d!\n", datasize);
+                    h264depay->vpudec->vpu_write_buffer_data(m_buf, datasize, datatype);
+                }
+                if(frameid < 3)
+                    frameid++;
+                else
+                    usleep(32000);
+                if(state == RTSP_OK)
+                {
+                    zprintf1("state ok!\n");
+                    break;
+                }
 
-            sleep(1);
+            }
             if(state == RTSP_OK)
             {
                 zprintf1("state ok!\n");
                 break;
             }
-            time++;
-            if(time >= 2)
-            {
-                time = 0;
-                break;
-            }
+
+            // h264depay->vpudec->vpu_write_data_from_file(m_fp, FRAME_MAX_NUM * H264_DATA_SIZE, datatype);
+
+
+            // sleep(1);
+            // if(state == RTSP_OK)
+            // {
+            //     zprintf1("state ok!\n");
+            //     break;
+            // }
+            // time++;
+            // if(time >= 2)
+            // {
+            //     time = 0;
+            //     break;
+            // }
         }
         fclose(m_fp);
         m_fp = NULL;
@@ -599,8 +655,9 @@ RTSP_ERROR:
     {
         if(state != RTSP_NO_DATA)
         {
-            h264depay->vpudec->vpu_close();
-            h264depay->vpudec->vpu_open(VPU_V_MJPG);
+            zprintf4("hndz vpu decode VPU_V_MJPG!\n");
+            // h264depay->vpudec->vpu_close();
+            // h264depay->vpudec->vpu_open(VPU_V_MJPG);
         }
         change_rtsp_state(RTSP_NO_DATA);
     }

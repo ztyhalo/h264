@@ -4,11 +4,11 @@ CONFIG += console C++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
-DEFINES += BREAKPAD
+#DEFINES += BREAKPAD
 
 #QMAKE_CXXFLAGS += -std=c++11
 QMAKE_CXXFLAGS += -std=gnu++11
-
+DEFINES += ARM
 
 for(libname,DEFINES){
     contains(libname,BREAKPAD){
@@ -26,6 +26,7 @@ linux-gnueabi-oe-g++{
     DEFINES += ARM
     LIBS += -lpthread -lfslvpuwrap -lg2d
 }
+
 SOURCES += \
         bufmodel/ZBufModel.cpp \
         date/com_date.cpp \

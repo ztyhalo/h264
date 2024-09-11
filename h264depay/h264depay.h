@@ -48,6 +48,7 @@ public:
     VpuDec *  vpudec;
 
     int      proframe;
+    FILE  *   m_fp ;
 
     int data_porcess(uint8_t * buf, int size);
     int data_parse(uint8_t * buf, int size, int q, int drop);

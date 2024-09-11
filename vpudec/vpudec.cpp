@@ -1,12 +1,12 @@
 #ifdef ARM
 #include "vpudec.h"
 
-//unsigned char g_vpuPara[42] = {0x1  ,0x64 ,0x0  ,0x2a ,0xff ,0xe1 ,0x0  ,0x1a ,
-//                               0x67 ,0x64 ,0x0  ,0x2a ,0xac ,0x2c ,0x6a ,0x81 ,
-//                               0xe0 ,0x8  ,0x9f ,0x96 ,0x6a ,0x2  ,0x2  ,0x2 ,
-//                               0x80 ,0x0  ,0x0  ,0x3  ,0x0  ,0x80 ,0x0  ,0x0 ,
-//                               0x14 ,0x42 ,0x1  ,0x0  ,0x5  ,0x68 ,0xee ,0x31,
-//                               0xb2 ,0x1b };
+unsigned char g_vpuPara[42] = {0x1  ,0x64 ,0x0  ,0x2a ,0xff ,0xe1 ,0x0  ,0x1a ,
+                              0x67 ,0x64 ,0x0  ,0x2a ,0xac ,0x2c ,0x6a ,0x81 ,
+                              0xe0 ,0x8  ,0x9f ,0x96 ,0x6a ,0x2  ,0x2  ,0x2 ,
+                              0x80 ,0x0  ,0x0  ,0x3  ,0x0  ,0x80 ,0x0  ,0x0 ,
+                              0x14 ,0x42 ,0x1  ,0x0  ,0x5  ,0x68 ,0xee ,0x31,
+                              0xb2 ,0x1b };
 
 G2dDISPLAY::G2dDISPLAY()
 {
@@ -66,7 +66,8 @@ VpuDec::VpuDec()
     m_frametype = VPU_V_AVC;
     m_databuf = NULL;
     sem_init(&m_datasem, 0,0);
-
+    memset(m_h264info.data, 0x00, VPU_PARA_LEN);
+    m_h264info.nSize = 0;
 }
 VpuDec::~VpuDec()
 {
@@ -76,11 +77,11 @@ VpuDec::~VpuDec()
     double total_time;
     VpuDecRetCode ret;
 
-    stop();
-    VPU_DecClose(handle);
-    VPU_DecUnLoad();
+    // stop();
+    // VPU_DecClose(handle);
+    // VPU_DecUnLoad();
 
-
+    zprintf4("delete frameinfo!\n");
     for(i = 0; i < FRAME_BUF_SIZE; i++)
     {
         if(frameinfo[i].nSize > 0)
@@ -93,11 +94,13 @@ VpuDec::~VpuDec()
             frameinfo[i].nSize = 0;
         }
     }
+    zprintf4("delete virt_ptr!\n");
     if(virt_ptr != NULL)
     {
         free(virt_ptr);
         virt_ptr = NULL;
     }
+    zprintf4("delete internal_mem_info!\n");
     if(internal_mem_info.nSize > 0)
     {
         ret = VPU_DecFreeMem(&internal_mem_info);
@@ -107,21 +110,25 @@ VpuDec::~VpuDec()
         }
         internal_mem_info.nSize = 0;
     }
+    zprintf4("delete v4l2!\n");
     if(v4l2 != NULL)
     {
         delete v4l2;
         v4l2 = NULL;
     }
+     zprintf4("delete disaplay!\n");
     if(display != NULL)
     {
         delete display;
         display = NULL;
     }
+     zprintf4("delete m_databuf!\n");
     if(m_databuf != NULL)
     {
         delete m_databuf;
         m_databuf = NULL;
     }
+    zprintf4("delete m_datasem!\n");
     sem_destroy(&m_datasem);
 
     gettimeofday(&m_tend, NULL);
@@ -465,6 +472,12 @@ int VpuDec::vpu_close(void)
     VPU_DecClose(handle);
     return 0;
 }
+int VpuDec::vpu_stop(void)
+{
+    VPU_DecClose(handle);
+    VPU_DecUnLoad();
+    return stop();
+}
 
 int VpuDec::vpu_change_mode(VpuCodStd type)
 {
@@ -610,7 +623,6 @@ int VpuDec::vpu_dec_data_output(void)
         zprintf1("zty could not get decoded output frame: %s", gst_vpu_dec_object_strerror(dec_ret));
         return -1;
     }
-
     index = vpu_get_src_info(&out_frame_info, &srcbuf); //vpu解码的数据地址
     if(index < 0)
     {
@@ -623,6 +635,7 @@ int VpuDec::vpu_dec_data_output(void)
         zprintf1("zty get next buf error!\n");
         return -2;
     }
+
 //    printf("zty dstbuf vaddr 0x%x!\n", dstbuf.vaddr);
     if(v4l2->g2d->g2d_device_blit_surface(&srcbuf ,&dstbuf) != 0) //g2d解码数据
     {
@@ -669,7 +682,7 @@ int VpuDec::vpu_decode_process(uint8_t * data, int size)
 
     int buf_ret;
     int ret = 0;
-
+    int j ;
 
 
     memset(&in_data, 0, sizeof(in_data));
@@ -678,9 +691,21 @@ int VpuDec::vpu_decode_process(uint8_t * data, int size)
     in_data.pVirAddr = data;
     in_data.sCodecData.pData = vpu_data.pData;
     in_data.sCodecData.nSize = vpu_data.nSize;
+    zprintf4("hndz indata data 0x%x, size %d  in_data.sCodecData.pData 0x%x vpu_data.nSize %d!\n",
+             data, size, in_data.sCodecData.pData[0], vpu_data.nSize);
+    zprintf1("hndz write size %d!\n", size);
+    for(j = 0 ; j <8 ; j++)
+    {
+        zprintf3("0x%x ", data[j]);
+    }
+    zprintf3("\n");
+    for(j = size-8; j < size; j++)
+        zprintf3("0x%x ", data[j]);
+    zprintf3("\n");
     while(1)
     {
-
+        // zprintf4("hndz debug !\n");
+        // return 0;
         dec_ret = VPU_DecDecodeBuf(handle, &in_data, &buf_ret);
         if (dec_ret != VPU_DEC_RET_SUCCESS)
         {
@@ -729,8 +754,7 @@ int VpuDec::vpu_decode_process(uint8_t * data, int size)
 
         if (buf_ret & VPU_DEC_OUTPUT_DIS)  //vpu解码成功有帧输出
         {
-//            printf("zty VPU_DEC_OUTPUT_DIS!\n");
-
+             printf("zty VPU_DEC_OUTPUT_DIS!\n");
             ret = vpu_dec_data_output();
             if(ret != 0)
             {
@@ -775,13 +799,13 @@ int VpuDec::vpu_decode_process(uint8_t * data, int size)
 
         if (buf_ret & VPU_DEC_NO_ENOUGH_INBUF) //没有足够的input buffer 应该是数据不够
         {
-//            printf("zty VPU_DEC_NO_ENOUGH_INBUF!\n");
+            printf("zty VPU_DEC_NO_ENOUGH_INBUF!\n");
             break;
         }
 
         if ((buf_ret & VPU_DEC_INPUT_USED))
         {
-//            printf("zty VPU_DEC_INPUT_USED!\n");
+            printf("zty VPU_DEC_INPUT_USED!\n");
             if (in_data.nSize)
             {
                 in_data.nSize = 0;
@@ -811,8 +835,13 @@ int VpuDec::vpu_write_data_from_file(FILE * fp, int size, VPUDataType para)
     int err =0;
 //    set_vpu_codec_data(g_vpuPara, 42);
     err = m_databuf->buf_write_data_from_file(fp, size, para);
+    // uint8_t * buf = (uint8_t *) m_jpegbuf;
+    // printf("hndz start read file size %d!\n", size);
+    // err = fread(buf, 1, size, fp);
+    // printf("read size %d!\n", err);
     if(err > 0)
     {
+        // m_zsize = err;
         sem_post(&m_datasem);
     }
     return err;
@@ -868,12 +897,14 @@ void VpuDec::run()
     while(running)
     {
         sem_wait(&m_datasem);
+
         size = m_databuf->get_buf_data(&buf, &datatype);
 
         if(size > 0 && buf != NULL)
         {
             if(datatype.m_datatype != m_frametype)
             {
+                zprintf4("buf data type %d vpu type %d!\n", datatype.m_datatype, m_frametype);
                 zprintf1("buf data type %d vpu type %d!\n", datatype.m_datatype, m_frametype);
             }
             else

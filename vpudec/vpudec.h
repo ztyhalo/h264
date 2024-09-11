@@ -24,7 +24,7 @@ using namespace std;
 #define MemNotAlign(mem,align)	((((unsigned int)mem)%(align))!=0)
 
 
-#define VPU_MAX_BUF 18
+#define VPU_MAX_BUF 240
 #define FRAME_MAX_NUM  260  //260
 #define VPU_DATA_SIZE 1248
 
@@ -95,6 +95,7 @@ public:
     int vpu_open(void);
     int vpu_open(VpuCodStd type);
     int vpu_close(void);
+    int vpu_stop(void);
     int vpu_mem_init(void);
 
     int vpu_decode_process(uint8_t * data, int size);

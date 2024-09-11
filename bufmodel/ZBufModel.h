@@ -14,6 +14,7 @@ public:
     uint                 m_rd;
     uint                 m_num;
     uint                 m_maxnum;
+    uint                 m_end;
     SUPPLEM              m_supm[N];
 
 public:
@@ -22,6 +23,7 @@ public:
         m_wr = 0;
         m_rd = 0;
         m_num = 0;
+        m_end = 0;
         memset(m_size, 0x00, sizeof(m_size));
         memset(m_buf, 0x00, sizeof(m_buf));
         memset(m_supm,0x00, sizeof(m_supm));
@@ -62,6 +64,37 @@ int ZBufModel<DTYPE,SUPPLEM,N,SIZE>::buf_basewrite_data(DTYPE * val, int num, SU
     {
         m_maxnum = m_num;
         zprintf1("buf max write is %d!\n", m_maxnum);
+    }
+    if((m_wr == 0) && (m_end == 1))
+    {
+        int i;
+        int j;
+        int err = 0;
+        FILE * g_fpd;
+        zprintf4("write start!\n");
+        g_fpd = fopen("/opt/lsh264", "w");
+        if(NULL == g_fpd)
+        {
+            zprintf4("file open error end!\n");
+            return 0;
+        }
+        for(i = 0; i < N; i++)
+        {
+            zprintf4("write size %d!\n", m_size[i]);
+            err = fwrite(m_size+i, 1, sizeof(uint), g_fpd);
+            if(err == -1)
+            {
+                zprintf4("write file error!\n");
+            }
+            err = fwrite(m_buf[i], 1, m_size[i], g_fpd);
+            if(err == -1)
+            {
+                zprintf4("write buf file error!\n");
+            }
+        }
+        zprintf4("write end!\n");
+        m_end = 1;
+        fclose(g_fpd);
     }
 
     return 0;
@@ -110,7 +143,7 @@ int ZBufModel<DTYPE,SUPPLEM,N,SIZE>::buf_write_data_from_file(FILE * fp, int num
         err = -5;
         goto WRITEEND;
     }
-    m_size[m_wr] = num;
+    m_size[m_wr] = err;
     m_supm[m_wr] = para;
     m_wr++;
     m_wr %= N;
