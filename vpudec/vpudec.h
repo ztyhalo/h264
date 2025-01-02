@@ -24,7 +24,7 @@ using namespace std;
 #define MemNotAlign(mem,align)	((((unsigned int)mem)%(align))!=0)
 
 
-#define VPU_MAX_BUF 240
+#define VPU_MAX_BUF 18
 #define FRAME_MAX_NUM  260  //260
 #define VPU_DATA_SIZE 1248
 
@@ -111,6 +111,7 @@ public:
     int vpu_change_mode(VpuCodStd type);
     int vpu_write_buffer_data(uint8_t * buf, int size, VPUDataType para);
     int vpu_write_data_from_file(FILE * fp, int size, VPUDataType para);
+    int vpu_write_data_from_file(FILE * fp, VPUDataType para);
     int set_h264sps_info(uint8_t * buf, int size);
     int set_h264pps_info(uint8_t * buf, int size);
     void run();

@@ -177,7 +177,6 @@ public:
      int start(string name =""){
          if(pid == 0)
          {
-             zprintf4("hndz create pid start!\n");
              if(pthread_create(&pid, NULL, start_thread,this) != 0)
              {
                  zprintf1("creat pthread failed!\n");
@@ -190,7 +189,6 @@ public:
                  zprintf3("zty create pid %d name %s!\n", (int)pid, name.c_str());
                  return 0;
              }
-             zprintf4("hndz create pid end!\n");
          }
          zprintf1("pid %d have creat\n",(int)pid);
          return -1;
@@ -198,7 +196,7 @@ public:
 
      int stop(){
 
-         zprintf4("stop pid %d name %s!\n", (int)pid, m_name.c_str());
+         zprintf3("stop pid %d name %s!\n", (int)pid, m_name.c_str());
          if(pid > 0)
          {
              running = 0;
@@ -206,7 +204,7 @@ public:
              pthread_join(pid, NULL);
              pid = 0;
          }
-         zprintf4("stop pid %d end!\n",(int)pid);
+         zprintf3("stop pid %d end!\n",(int)pid);
          return 0;
      }
 

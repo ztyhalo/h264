@@ -10,10 +10,10 @@
 #include <semaphore.h>
 #include "rtp/rtp.h"
 
-#define H264_MAX_FRAME 120
-#define FRAME_MAX_NUM  260  //260
-#define H264_DATA_SIZE 1248
-#define FRAME_HEAR_OFF 4
+// #define H264_MAX_FRAME 18
+// #define FRAME_MAX_NUM  260  //260
+#define H264_DATA_SIZE VPU_DATA_SIZE
+// #define FRAME_HEAR_OFF 4
 
 
 #define H264_HEAD_MIN_LEN 12
@@ -48,7 +48,6 @@ public:
     VpuDec *  vpudec;
 
     int      proframe;
-    FILE  *   m_fp ;
 
     int data_porcess(uint8_t * buf, int size);
     int data_parse(uint8_t * buf, int size, int q, int drop);

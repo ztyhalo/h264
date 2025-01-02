@@ -27,7 +27,7 @@ static bool dumpCallback(const google_breakpad::MinidumpDescriptor& descriptor, 
 //void crash() { volatile int* a = (int*)(NULL); *a = 1; }
 #endif
 
-#define H264_VERSION "2.0.1"
+#define H264_VERSION "2.0.3"
 
 RTSP          * gRTSP = NULL;
 
@@ -52,16 +52,9 @@ void SignalFunc(int var)
 #endif
     exit(0);
 }
-static void * Tstart_thread(void * arg){
-    zprintf4("zty pid start!\n");
-    int res = pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,   NULL);   //设置立即取消
-    printf("hndz preate create!\n");
-    return NULL;
-}
+
 int main(int argc, char* argv[])
 {
-    pthread_t Tpid;
-    pthread_attr_t parttr;
     string ipaddr = "169.254.1.168";
 
     if (argc == 2)
@@ -92,14 +85,7 @@ int main(int argc, char* argv[])
     zprintf3(".......................................................\n");
     zprintf1("H264-%s start:\n", H264_VERSION);
 
-    // zprintf4("H264-%s start:\n", H264_VERSION);
-    //  pthread_attr_init (&parttr);
-    // zprintf4("H264-%s end:\n", H264_VERSION);
-     // sleep(8);
-    // if(pthread_create(&Tpid, NULL, Tstart_thread, NULL) != 0)
-    //     zprintf4("create ok:\n", H264_VERSION);
-    // sleep(1);
-    // return 0;
+
     gRTSP = new RTSP;
 
 //    RTSP rtsp;

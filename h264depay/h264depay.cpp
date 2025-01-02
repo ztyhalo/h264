@@ -54,7 +54,6 @@ H264Depay::H264Depay()
     vpudec = NULL;
 
     zprintf4("zty h264init %d!\n", next_seq);
-    // m_fp = fopen("/opt/lsh264", "rb");
 }
 
 H264Depay::~H264Depay()
@@ -63,7 +62,10 @@ H264Depay::~H264Depay()
 //    stop();
 
     if(vpudec != NULL)
+    {
         delete vpudec;
+        vpudec = NULL;
+    }
 
 }
 
@@ -74,8 +76,6 @@ int H264Depay::data_parse(uint8_t * buf, int size, int q, int drop)
     uint32_t nalu_size;
     uint32_t outsize;
     uint32_t payload_len = size;
-    int err;
-    int   datasize = 0;
 
     VPUDataType datatype;
 
@@ -184,26 +184,6 @@ int H264Depay::data_parse(uint8_t * buf, int size, int q, int drop)
                     m_runok = false;
                     break;
                 }
-                zprintf1("udp write frame %d!\n", m_size);
-                // err = fread(&datasize, 1, sizeof(uint), m_fp);
-
-                // if(err != 4)
-                // {
-                //     zprintf4("read error!\n");
-                //     break;
-                // }
-                // else
-                // {
-                //     zprintf4("read datasize is %d!\n", datasize);
-                //     err = fread(m_buf, 1, datasize, m_fp);
-                //     if(err != datasize)
-                //     {
-                //         zprintf4("read data error!\n");
-                //         break;
-                //     }
-                //     zprintf1("file write size %d!\n", datasize);
-                //     vpudec->vpu_write_buffer_data(m_buf, datasize, datatype);
-                // }
                 vpudec->vpu_write_buffer_data(m_buf, m_size, datatype);
             }
             break;
@@ -241,26 +221,7 @@ int H264Depay::data_parse(uint8_t * buf, int size, int q, int drop)
                 break;
 
             }
-            zprintf1("udp write else %d!\n", m_size);
-            // err = fread(&datasize, 1, sizeof(uint), m_fp);
 
-            // if(err != 4)
-            // {
-            //     zprintf4("read error!\n");
-            //     break;
-            // }
-            // else
-            // {
-            //     zprintf4("read datasize is %d!\n", datasize);
-            //     err = fread(m_buf, 1, datasize, m_fp);
-            //     if(err != datasize)
-            //     {
-            //         zprintf4("read data error!\n");
-            //         break;
-            //     }
-            //     zprintf1("file write size %d!\n", datasize);
-            //     vpudec->vpu_write_buffer_data(m_buf, datasize, datatype);
-            // }
             vpudec->vpu_write_buffer_data(m_buf, m_size, datatype);
             break;
           }
@@ -322,9 +283,7 @@ void H264Depay::rtp_h264_init(void)
         vpudec = new VpuDec;
     vpudec->vpu_init();
     vpudec->vpu_open();
-    zprintf4("hndz vpudec start!\n");
     vpudec->start("vpudec_thread");
-    zprintf4("hndz vpudec end!\n");
 
 }
 
