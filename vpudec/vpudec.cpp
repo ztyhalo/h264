@@ -83,7 +83,7 @@ VpuDec::~VpuDec()
     // VPU_DecClose(handle);
     // VPU_DecUnLoad();
     err = stop();
-    // printf("hndz vpu stop ret %d!\n", err);
+    printf("hndz vpu stop ret %d!\n", err);
     if(err != 0)
     {
         VPU_DecReset(handle);
@@ -91,7 +91,7 @@ VpuDec::~VpuDec()
     ret = VPU_DecClose(handle);
     if (ret!=VPU_DEC_RET_SUCCESS)
     {
-        // printf("hndz VPU_DecClose %d!\n", ret);
+        printf("hndz VPU_DecClose %d!\n", ret);
         VPU_DecReset(handle);
         ret = VPU_DecClose(handle);
         printf("hndz re VPU_DecClose %d!\n", ret);
@@ -491,13 +491,13 @@ int VpuDec::vpu_stop(void)
 {
     int ret = stop();
     printf("hndz vpu stop ret %d!\n", ret);
-    if(handle != 0)
-    {
-        ret = VPU_DecClose(handle);
-        handle = 0;
-        printf("hndz VPU_DecClose ret %d!\n", ret);
-    }
-    VPU_DecUnLoad();
+    // if(handle != 0)
+    // {
+    //     ret = VPU_DecClose(handle);
+    //     handle = 0;
+    //     printf("hndz VPU_DecClose ret %d!\n", ret);
+    // }
+    // VPU_DecUnLoad();
     return ret;
 }
 
@@ -929,6 +929,7 @@ void VpuDec::run()
     while(running)
     {
         sem_wait(&m_datasem);
+        if(!running) return;
         size = m_databuf->get_buf_data(&buf, &datatype);
 
         if(size > 0 && buf != NULL)

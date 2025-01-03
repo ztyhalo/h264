@@ -178,10 +178,10 @@ RTSP::~RTSP()
 {
     zprintf1("rtsp delete!\n");
 
-    // if(h264depay != NULL && h264depay->vpudec != NULL)
-    // {
-    //     h264depay->vpudec->vpu_stop();
-    // }
+    if(h264depay != NULL && h264depay->vpudec != NULL)
+    {
+        h264depay->vpudec->vpu_stop();
+    }
     // stop();
 
     close_fd();
