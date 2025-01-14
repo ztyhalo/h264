@@ -89,6 +89,7 @@ public:
      void close_fd(void)
      {
          if(socket_fd > 0){
+             shutdown(socket_fd, SHUT_WR);
              close(socket_fd);
              socket_fd = 0;
          }

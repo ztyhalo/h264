@@ -619,7 +619,7 @@ int RTSP::rtsp_run(void)
     int ret;
     GstRTSPMessage msg;
     string msg_str;
-    char buf[2048] = {0};
+    char buf[512] = {0};
     // ts.tv_nsec = 0;
     // ts.tv_sec   = 30;
 
