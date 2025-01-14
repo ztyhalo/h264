@@ -27,7 +27,7 @@ static bool dumpCallback(const google_breakpad::MinidumpDescriptor& descriptor, 
 //void crash() { volatile int* a = (int*)(NULL); *a = 1; }
 #endif
 
-#define H264_VERSION "2.0.4"
+#define H264_VERSION "2.0.5"
 
 RTSP          * gRTSP = NULL;
 

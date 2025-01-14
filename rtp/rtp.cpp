@@ -2,7 +2,7 @@
 
 RTP::~RTP()
 {
-    zprintf4("delete rtp");
+    zprintf4("delete rtp!\n");
     stop();
     rxcallback = NULL;
     netstatecb = NULL;

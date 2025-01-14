@@ -3,7 +3,7 @@ CONFIG += console C++11
 #CONFIG += console
 CONFIG -= app_bundle
 CONFIG -= qt
-
+DESTDIR = $$PWD/
 #DEFINES += BREAKPAD
 
 #QMAKE_CXXFLAGS += -std=c++11

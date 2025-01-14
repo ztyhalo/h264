@@ -278,6 +278,7 @@ public:
     int state;
     int m_isplay;
     FILE * m_fp;
+    int m_rtsprun;
     void run();
 
 };

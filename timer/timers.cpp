@@ -23,3 +23,11 @@ void linuxDly(int ms)
     linuxDly(0,ms);
 }
 
+int set_delay_ts(struct timespec * ts, int sec)
+{
+    if (clock_gettime(CLOCK_REALTIME, ts) < 0 )
+        return -1;
+
+    ts->tv_sec  += sec;
+    return 0;
+}

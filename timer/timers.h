@@ -132,5 +132,6 @@ typedef TimerEvent<void,void> TEvent;
 
 void linuxDly(int s, int ms);
 void linuxDly(int ms);
+int set_delay_ts(struct timespec * ts, int sec);
 #endif // TIMERS_H
 

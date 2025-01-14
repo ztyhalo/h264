@@ -424,7 +424,7 @@ int VpuDec::vpu_open(VpuCodStd type)
     zprintf4("vpu open type %d!\n", type);
     memset(&open_param, 0, sizeof(open_param));
 
-    open_param.CodecFormat = type;   //VPU_V_MJPG; //VPU_V_AVC;
+    open_param.CodecFormat = VPU_V_AVC;   //VPU_V_MJPG; //VPU_V_AVC;
     m_frametype = type;
     open_param.nMapType = 0;
     open_param.nTiled2LinearEnable = 0;
@@ -489,7 +489,10 @@ int VpuDec::vpu_close(void)
 }
 int VpuDec::vpu_stop(void)
 {
-    int ret = stop();
+    int ret;
+    lock();
+    ret = stop();
+    unlock();
     printf("hndz vpu stop ret %d!\n", ret);
     // if(handle != 0)
     // {
@@ -895,7 +898,7 @@ int VpuDec::set_h264sps_info(uint8_t * buf, int size)
     memcpy(m_h264info.data +6, buf +2, size -2);
     m_h264info.nSize = 6 + size -2;
 
-//     data_printfpsp("sps :", m_h264info.data, m_h264info.nSize);
+    // data_printfpsp("sps :", m_h264info.data, m_h264info.nSize);
     return 0;
 }
 int VpuDec::set_h264pps_info(uint8_t * buf, int size)
@@ -908,7 +911,7 @@ int VpuDec::set_h264pps_info(uint8_t * buf, int size)
     memcpy(m_h264info.data + m_h264info.nSize +1, buf + 2, size -2);
     m_h264info.nSize += (size -1);
 
-//    data_printfpsp("pps :", m_h264info.data, m_h264info.nSize);
+    // data_printfpsp("pps :", m_h264info.data, m_h264info.nSize);
 
     return 0;
 }
@@ -929,16 +932,21 @@ void VpuDec::run()
     while(running)
     {
         sem_wait(&m_datasem);
-        if(!running) return;
+        lock();
+        if(!running)
+        {
+            unlock();
+            return;
+        }
         size = m_databuf->get_buf_data(&buf, &datatype);
 
         if(size > 0 && buf != NULL)
         {
-            // if(datatype.m_datatype != m_frametype)
-            // {
-            //     zprintf1("buf data type %d vpu type %d!\n", datatype.m_datatype, m_frametype);
-            // }
-            // else
+            if(datatype.m_datatype != m_frametype)
+            {
+                zprintf1("buf data type %d vpu type %d!\n", datatype.m_datatype, m_frametype);
+            }
+            else
             {
 
                 nal_unit_type = buf[4] & 0x1f;
@@ -964,7 +972,13 @@ void VpuDec::run()
             }
 
             m_databuf->add_buf_rd();
+
+            // if(datatype.m_datatype == VPU_V_MJPG)
+            //     printf("hndz VPU_V_MJPG end!\n");
+            // else
+            //     printf("hndz VPU_V_av end!\n");
         }
+        unlock();
 
     }
 }
