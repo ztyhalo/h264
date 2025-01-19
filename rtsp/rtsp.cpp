@@ -110,7 +110,7 @@ RTSP::message_to_string (GstRTSPMessage * message)
       {
           str += session;
           str += "\r\n";
-          printf("get parameter %s!\n", str.c_str());
+          zprintf4("get parameter %s!\n", str.c_str());
       }
 
       break;
@@ -190,7 +190,6 @@ RTSP::~RTSP()
     {
         h264depay->vpudec->vpu_stop();
     }
-    // stop();
 
     close_fd();
     if(udprtp != NULL)
@@ -390,6 +389,8 @@ int RTSP::rtsp_init(string ip)
     char buf[2048] = {0};
     int ret;
     int err = -1;
+    int tmpport;
+
     cseq = 1;
     if(initport != 51160)
         initport = 51160;
@@ -439,6 +440,21 @@ int RTSP::rtsp_init(string ip)
         return err;
     }
 
+    udprtp = new RTP;
+
+    udprtp->set_protocol(h264depay);
+    udprtp->rxcallback = h264_pro_rxdata_callback;
+    udprtp->rtp_init(session, 0);
+    tmpport = udprtp->get_sock_point();
+    if(initport == tmpport)
+    {
+        zprintf1("hndz tmpport error %d!\n", tmpport);
+    }
+    else
+    {
+        initport = tmpport;
+         zprintf1("hndz rtp port %d!\n", initport);
+    }
 
     tcp_client_init(554, ip.c_str());
     ret = tcp_client_connect();
@@ -537,11 +553,11 @@ int RTSP::rtsp_init(string ip)
     }
 
 
-   udprtp = new RTP;
+   // udprtp = new RTP;
 
-   udprtp->set_protocol(h264depay);
-   udprtp->rxcallback = h264_pro_rxdata_callback;
-   udprtp->rtp_init(session, initport);
+   // udprtp->set_protocol(h264depay);
+   // udprtp->rxcallback = h264_pro_rxdata_callback;
+   // udprtp->rtp_init(session, initport);
 
    udprtp->net_father = this;
    udprtp->netstatecb = rtp_netlink_callback;

@@ -94,6 +94,21 @@ public:
              socket_fd = 0;
          }
      }
+     int get_sock_point(void)
+     {
+        struct sockaddr_in addrp;
+        socklen_t optlen;
+        int ret;
+
+        if(socket_fd > 0)
+        {
+            optlen = sizeof(addrp);
+            ret = getsockname(socket_fd, (sockaddr*)&addrp, &optlen);
+            zprintf1("zty getsockname ret %d!\n", ret);
+            return ntohs(addrp.sin_port);
+        }
+        return 0;
+     }
 
 };
 
