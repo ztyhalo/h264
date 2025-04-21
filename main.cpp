@@ -1,6 +1,7 @@
 
 #include "rtsp/rtsp.h"
 #include "zprint/zprint.h"
+#include <signal.h>
 
 #ifdef ARM
 #include "vpudec/vpudec.h"
