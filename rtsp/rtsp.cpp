@@ -283,7 +283,7 @@ int rtp_netlink_callback(RTP * pro, int s)
 int eth_netlink_callback(NetlinkStatus * pro, int s)
 {
 
-    RTSP * midpro = (RTSP *) (RTSP *) pro->netlinkfater;
+    RTSP * midpro = (RTSP *) (RTSP *) pro->m_linkFather;
 
     if(midpro != NULL)
     {
@@ -423,11 +423,11 @@ int RTSP::rtsp_init(string ip)
     if(link == NULL)
     {
 
-        link = new NetlinkStatus("eth1");
+        link = new NetlinkStatus("eth0");
 
-        link->netlinkcb = eth_netlink_callback;
-        link->netlinkfater = this;
-
+        link->m_netlinkcb = eth_netlink_callback;
+        link->m_linkFather = this;
+        link->getNetInfo();
         link->start("linkstate_pthread");
     }
 

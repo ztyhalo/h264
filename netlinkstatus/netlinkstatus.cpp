@@ -10,8 +10,12 @@
 #include <sys/ioctl.h>
 #include <linux/ethtool.h>
 #include <linux/sockios.h>
+#include <ifaddrs.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
-NetlinkStatus::NetlinkStatus(string ethname)
+NetlinkStatus::NetlinkStatus(string ethname):m_netlinkcb(NULL),m_linkFather(NULL),m_linkState(0),m_eth(ethname),
+    m_nlSock(0)
 {
     int skfd;
     int err;
@@ -21,11 +25,7 @@ NetlinkStatus::NetlinkStatus(string ethname)
 
     edata.cmd = ETHTOOL_GLINK;
     edata.data = 0;
-    linkstate = 0;
-    nl_sock = 0;
-    netlinkfater = NULL;
 
-    eth = ethname;
 
     memset(&ifr, 0x00, sizeof(ifr));
     memcpy(ifr.ifr_name, ethname.c_str(), ethname.length());
@@ -39,7 +39,7 @@ NetlinkStatus::NetlinkStatus(string ethname)
     err = ioctl(skfd,  SIOCETHTOOL, &ifr);
     if(!err){
          zprintf1("zty edata.data %d!\n", edata.data);
-         linkstate = edata.data;
+         m_linkState = edata.data;
     }
     else
     {
@@ -55,19 +55,117 @@ NetlinkStatus::~NetlinkStatus()
     zprintf3("delete netlinkstatus!\n");
     stop();
 
-    if(nl_sock >0)
+    if(m_nlSock >0)
     {
-        close(nl_sock);
-        nl_sock = 0;
+        close(m_nlSock);
+        m_nlSock = 0;
     }
-    netlinkfater = NULL;
-    netlinkcb = NULL;
+    m_linkFather = NULL;
+    m_netlinkcb = NULL;
 
+}
+
+int NetlinkStatus::getNetState(string name, struct  NetInfo & val)
+{
+    int skfd;
+    int err;
+    struct ifreq ifr;
+    struct ethtool_value edata;
+    struct ethtool_cmd   espeed;
+
+    memset(&ifr, 0x00, sizeof(ifr));
+    memcpy(ifr.ifr_name, name.c_str(), name.length());
+    edata.cmd = ETHTOOL_GLINK;
+    ifr.ifr_data = (char *) &edata;
+
+    if (( skfd = socket( AF_INET, SOCK_DGRAM, 0 )) == 0)
+    {
+        zprintf1("netlinkstatus skfd socket fail!\n");
+        return -1;
+    }
+    err = ioctl(skfd,  SIOCETHTOOL, &ifr);
+    if(!err){
+        zprintf1("zty state %d!\n", edata.data);
+        val.m_status = edata.data;
+    }
+    else
+    {
+        zprintf1("zty ioctl error!\n");
+        perror("ioctl:");
+        return -2;
+    }
+
+
+    espeed.cmd = ETHTOOL_GSET;
+    ifr.ifr_data = (char *) &espeed;
+
+    err = ioctl(skfd,  SIOCETHTOOL, &ifr);
+    if(!err){
+        zprintf1("zty speed %d!\n", espeed.speed);
+        val.m_speed = espeed.speed;
+    }
+    else
+    {
+        zprintf1("zty ioctl error!\n");
+        perror("ioctl:");
+        return -2;
+    }
+    close(skfd);
+    return 0;
 }
 
 int NetlinkStatus::getLinkstate(void)
 {
-    return linkstate;
+    return m_linkState;
+}
+
+
+int NetlinkStatus::getNetInfo(void)
+{
+    struct ifaddrs *ifaddr, *ifa;
+    struct NetInfo tmpInfo;
+    memset(&tmpInfo, 0x00, sizeof(tmpInfo));
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("getifaddrs");
+        return -1;
+    }
+
+    int idx = 0;
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == NULL) {
+            continue;
+        }
+
+        int family = ifa->ifa_addr->sa_family;
+        if (family == AF_INET)
+        {
+            struct sockaddr_in *addr = (struct sockaddr_in *)(ifa->ifa_addr);
+            struct sockaddr_in *mask = (struct sockaddr_in *)(ifa->ifa_netmask);
+            struct sockaddr_in *gw = (struct sockaddr_in *)(ifa->ifa_dstaddr);
+
+            if (strcmp(ifa->ifa_name, "lo") != 0)
+            {
+                strncpy(tmpInfo.m_name, ifa->ifa_name, sizeof(tmpInfo.m_name));
+                inet_ntop(AF_INET, &addr->sin_addr, tmpInfo.m_ip, sizeof(tmpInfo.m_ip));
+                inet_ntop(AF_INET, &mask->sin_addr, tmpInfo.m_netmask, sizeof(tmpInfo.m_netmask));
+                inet_ntop(AF_INET, &gw->sin_addr, tmpInfo.m_gw, sizeof(tmpInfo.m_gw));
+                printf("net name %s ip %s!\n", tmpInfo.m_name, tmpInfo.m_ip);
+                strcpy(tmpInfo.m_dns, "8.8.8.8"); // DNS地址可以使用Google的公共DNS
+                tmpInfo.m_speed = 100; // 网络速度初始值为100
+                tmpInfo.m_status = 0; // 网络状态初始值为0
+                // string tmpName = ;
+                getNetState(tmpInfo.m_name, tmpInfo);
+
+                m_netInfo.push_back(tmpInfo);
+                /* 添加其他关键信息，如网络速度、状态等 */
+                idx++;
+            }
+        }
+    }
+
+    freeifaddrs(ifaddr);
+
+    return idx;
 }
 
 void NetlinkStatus::run()
@@ -87,17 +185,17 @@ void NetlinkStatus::run()
     nladdr.nl_family = AF_NETLINK;
     nladdr.nl_groups = RTNLGRP_LINK;
 
-    nl_sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-    if (nl_sock < 0) {
+    m_nlSock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+    if (m_nlSock < 0) {
         zprintf1("netlink nl sock error!\n");
         perror("socket");
         exit(EXIT_FAILURE);
     }
 
-    if (bind(nl_sock, (struct sockaddr *)&nladdr, sizeof(nladdr)) < 0) {
+    if (bind(m_nlSock, (struct sockaddr *)&nladdr, sizeof(nladdr)) < 0) {
         zprintf1("netlink bind error!\n");
         perror("bind");
-        close(nl_sock);
+        close(m_nlSock);
         exit(EXIT_FAILURE);
     }
 
@@ -118,11 +216,11 @@ void NetlinkStatus::run()
 //        msg.msg_iov = &iov;
 //        msg.msg_iovlen = 1;
 
-        status = recvmsg(nl_sock, &msg, 0);
+        status = recvmsg(m_nlSock, &msg, 0);
         if (status < 0) {
             zprintf1("netlinkstatus recvmsg error!\n");
             perror("recvmsg");
-            close(nl_sock);
+            close(m_nlSock);
             exit(EXIT_FAILURE);
         }
 //        printf("receive mes len %d!\n", status);
@@ -134,7 +232,7 @@ void NetlinkStatus::run()
             }
             if (h->nlmsg_type == NLMSG_ERROR) {
                 fprintf(stderr, "Error received in netlink message.\n");
-                close(nl_sock);
+                close(m_nlSock);
                 exit(EXIT_FAILURE);
             }
             // 处理接口变化事件
@@ -162,7 +260,7 @@ void NetlinkStatus::run()
                             zprintf1("ifname %s !\n", (char*)RTA_DATA(attr));
                             string ethname = (char*)RTA_DATA(attr);
 
-                            if(eth == ethname)
+                            if(m_eth == ethname)
                             {
                                 if (iface_msg->ifi_flags & IFF_UP) {
 
@@ -170,18 +268,18 @@ void NetlinkStatus::run()
                                     {
                                         zprintf1("网线已连接\n");
                                         printf("网线已连接\n");
-                                        linkstate = 1;
+                                        m_linkState = 1;
 
                                     }
                                      else {
                                         zprintf1("网线已断开\n");
                                         printf("网线已断开\n");
-                                        linkstate = 0;
+                                        m_linkState = 0;
 
                                     }
-                                    if(netlinkcb != NULL)
+                                    if(m_netlinkcb != NULL)
                                     {
-                                        this->netlinkcb(this, linkstate);
+                                        this->m_netlinkcb(this, m_linkState);
                                     }
                             }
 
@@ -193,8 +291,8 @@ void NetlinkStatus::run()
         }
     }
     zprintf1("zty netlink end!\n");
-    close(nl_sock);
-    nl_sock = 0;
+    close(m_nlSock);
+    m_nlSock = 0;
     return;
 }
 
