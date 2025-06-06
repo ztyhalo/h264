@@ -13,6 +13,7 @@
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <netinet/in.h>
 
 NetlinkStatus::NetlinkStatus(string ethname):m_netlinkcb(NULL),m_linkFather(NULL),m_linkState(0),m_eth(ethname),
     m_nlSock(0)
@@ -63,6 +64,13 @@ NetlinkStatus::~NetlinkStatus()
     m_linkFather = NULL;
     m_netlinkcb = NULL;
 
+}
+
+// 主比较函数
+int is_same_subnet(const char *ip1, const char *ip2, const char *netmask) {
+    unsigned int net1 = ip_to_net(ip1) & ip_to_net(netmask);
+    unsigned int net2 = ip_to_net(ip2) & ip_to_net(netmask);
+    return (net1 == net2) ? 1 : 0;
 }
 
 int NetlinkStatus::getNetState(string name, struct  NetInfo & val)
